@@ -1,0 +1,36 @@
+@media (min-width: 640px) {
+    .custom-choicejs .choices__list--dropdown .choices__item--selectable,.custom-choicejs .choices__list[aria-expanded] .choices__item--selectable {
+        padding-right: 10px;
+    }
+    .custom-choicejs .choices__list--dropdown .choices__item--selectable::after,.custom-choicejs .choices__list[aria-expanded] .choices__item--selectable::after {
+        content: ''
+    }
+}
+
+[dir=rtl] .choices__list--dropdown .choices__item--selectable, [dir=rtl] .choices__list[aria-expanded] .choices__item--selectable{
+    padding-left: 0px !important;
+}
+/* custom style starts from here */
+div:where(.swal2-container) .swal2-html-container {
+    overflow: hidden !important;
+}
+.bg-cover{
+background-size: cover !important;
+}
+
+.rounded-top-left-1 {
+    border-top-left-radius: 1rem;
+}
+.rounded-top-right-1 {
+    border-top-right-radius: 1rem;
+}
+.rounded-bottom-left-1 {
+    border-bottom-left-radius: 1rem;
+}
+.rounded-bottom-right-1 {
+    border-bottom-right-radius: 1rem;
+}
+
+/* .mobile-offcanvas.nav.navbar.navbar-expand-xl.hover-nav.py-0.w-75.offcanvas.offcanvas-start.show {
+    z-index: 99;
+} */
