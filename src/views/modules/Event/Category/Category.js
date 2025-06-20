@@ -12,17 +12,17 @@ import CustomDataTable from '../CustomHooks/CustomDataTable';
 // import CustomDataTable from '../Wallet/CustomDataTable';
 
 const Category = () => {
-    const { api, successAlert, authToken, ErrorAlert } = useMyContext();
+    const { api, successAlert, authToken, ErrorAlert,UserData } = useMyContext();
     const [pageList, setPageList] = useState();
     const [loading, setLoading] = useState(true);
-
+    console.log('userData',UserData)
     const [formData, setFormData] = useState({
         title: '',
         description:'',
-        image: null,
-        attendyRequired: false,
-        photoRequired: false,
-        status: true
+        // image: null,
+        // attendyRequired: false,
+        // photoRequired: false,
+        // status: true
     });
     const [modalState, setModalState] = useState({
         show: false,
@@ -198,15 +198,8 @@ const Category = () => {
                 return;
             }
 
-            const formPayload = new FormData();
-            formPayload.append('title', formData.title);
-            formPayload.append('status', formData.status ? 1 : 0);
-            formPayload.append('attendy_required', formData.attendyRequired ? 1 : 0);
-            formPayload.append('photo_required', formData.photoRequired ? 1 : 0);
-
-            if (formData.image) {
-                formPayload.append('image', formData.image);
-            }
+            let formPayload = {...formData,userId:UserData.id}
+            console.log('formData',formPayload)
 
             const apiUrl = modalState.editState
                 ? `${api}category-update/${modalState.editId}`
@@ -367,15 +360,17 @@ const Category = () => {
                                     <Form.Label>Description</Form.Label>
                                     <Form.Control
                                         type="text"
+                                        value={formData.description}
+                                        placeholder="Enter Description"
                                         onChange={(e) => setFormData(prev => ({
                                             ...prev,
-                                            image: e.target.files[0]
+                                            description: e.target.value
                                         }))}
                                     />
                                 </Form.Group>
                             </Col>
 
-                            <Col lg="4">
+                            {/* <Col lg="12">
                                 <Form.Group className="mb-3 form-group">
                                     <Form.Label>Attendee Required</Form.Label>
                                     <Form.Check
@@ -396,8 +391,8 @@ const Category = () => {
                                         }}
                                     />
                                 </Form.Group>
-                            </Col>
-                            <Col lg="4">
+                            </Col> */}
+                            {/* <Col lg="4">
                                 <Form.Group className="mb-3 form-group">
                                     <Form.Label>Photo Required</Form.Label>
                                     <Form.Check
@@ -425,7 +420,7 @@ const Category = () => {
                                         }))}
                                     />
                                 </Form.Group>
-                            </Col>
+                            </Col> */}
                         </Row>
                     </Form>
                     {formData.attendyRequired && (
