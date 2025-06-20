@@ -83,8 +83,8 @@ const VerticalNav = memo(() => {
         },
       ],
     },
-    
-  
+
+
 
 
 
@@ -115,7 +115,7 @@ const VerticalNav = memo(() => {
       // permission: "View Payment Logs",
       icon: <Code size={16} />,
     },
-  
+
     // Roles Menu
     {
       title: "Roles",
@@ -214,8 +214,11 @@ const VerticalNav = memo(() => {
 
               <Accordion.Collapse eventKey={menu.eventKey}>
                 <ul className="sub-nav">
-                  {menu.subMenus.map((subMenu, subIndex) => (
-                    UserPermissions?.includes(subMenu.permission) && (
+                  {menu.subMenus.map((subMenu, subIndex) => {
+                    // Check if submenu should be shown (either no permission required or user has permission)
+                    const hasSubMenuPermission = !subMenu.permission || UserPermissions?.includes(subMenu.permission);
+
+                    return hasSubMenuPermission && (
                       <SidebarMenu
                         key={subIndex}
                         isTag="false"
@@ -226,8 +229,8 @@ const VerticalNav = memo(() => {
                       >
                         <i className="icon">{subMenu?.icon}</i>
                       </SidebarMenu>
-                    )
-                  ))}
+                    );
+                  })}
                 </ul>
               </Accordion.Collapse>
             </Accordion.Item>
