@@ -198,11 +198,11 @@ const NewUser = memo(() => {
   const HandleReportingUser = async (user) => {
     setReportingUser(user);
     setSelectedCompany(null); // Clear previous company selection
-//     setGstData((prev)=>({
-  //       //       ...prev,
-  //       //       companyName:user?.organisation
-  //       //     }))
-  //       // }
+    //     setGstData((prev)=>({
+    //       //       ...prev,
+    //       //       companyName:user?.organisation
+    //       //     }))
+    //       // }
     if (roleName === "User") {
       try {
         const response = await axios.get(`${api}fatch-company/${user.value}`, {
@@ -243,9 +243,9 @@ const NewUser = memo(() => {
       return;
     }
     if (userData.password !== repeatPassword) {
-  ErrorAlert("Passwords do not match.");
-  return;
-}
+      ErrorAlert("Passwords do not match.");
+      return;
+    }
 
 
     const form = e.currentTarget;
@@ -271,13 +271,13 @@ const NewUser = memo(() => {
       formData.append("state", addressData?.state);
       formData.append("city", addressData?.city);
       formData.append("address", addressData?.address);
-      formData.append("reporting_user",UserData.id)
+      formData.append("reporting_user", UserData.id)
       if (roleName === "User" || roleName === "Company") {
         if (roleName === "Company") {
           formData.append("category_id", selectedEvents.value);
         }
         if (roleName === "User") {
-          if(!selectedCompany.value){
+          if (!selectedCompany.value) {
             ErrorAlert("Please select Company");
             return
           }
@@ -290,7 +290,7 @@ const NewUser = memo(() => {
         formData.append("org_id", reportingUser?.value);
       }
       if (roleName === "Company" || roleName === "Organizer") {
-        formData.append("organisation", gstData.companyName );
+        formData.append("organisation", gstData.companyName);
         formData.append("gst_no", gstData.gstNumber); // ✅ Use from gstData
         if (roleName === "Company") {
         }
@@ -326,7 +326,7 @@ const NewUser = memo(() => {
       HandleBack();
     } catch (error) {
       ErrorAlert(error.response?.data?.error || error.response?.data?.message);
-      console.error("ERROR SUBMITTING USER",error)
+      console.error("ERROR SUBMITTING USER", error)
     }
   };
 
@@ -440,44 +440,26 @@ const NewUser = memo(() => {
                         <>
                           {(roleName === "Organizer" ||
                             roleName === "Company") && (
-                            <>
-                              <Form.Group className="col-md-3 form-group">
-                                <Form.Label htmlFor="companyName">
-                                  Company Name:
-                                </Form.Label>
-                                <Form.Control
-                                  type="text"
-                                  id="companyName"
-                                  placeholder="Company Name"
-                                  value={gstData.companyName}
-                                  onChange={(e) =>
-                                    setGstData((prev) => ({
-                                      ...prev,
-                                      companyName: e.target.value,
-                                    }))
-                                  }
-                                />
-                              </Form.Group>
-                              <Form.Group className="col-md-3 form-group">
-                                <Form.Label htmlFor="gstNumber">
-                                  GST Number:
-                                </Form.Label>
-                                <Form.Control
-                                  type="text"
-                                  id="gstNumber"
-                                  placeholder="Enter GST Number"
-                                  required
-                                  value={gstData.gstNumber}
-                                  onChange={(e) =>
-                                    setGstData((prev) => ({
-                                      ...prev,
-                                      gstNumber: e.target.value,
-                                    }))
-                                  }
-                                />
-                              </Form.Group>
-                            </>
-                          )}
+                              <>
+                                <Form.Group className="col-md-3 form-group">
+                                  <Form.Label htmlFor="companyName">
+                                    Company Name:
+                                  </Form.Label>
+                                  <Form.Control
+                                    type="text"
+                                    id="companyName"
+                                    placeholder="Company Name"
+                                    value={gstData.companyName}
+                                    onChange={(e) =>
+                                      setGstData((prev) => ({
+                                        ...prev,
+                                        companyName: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </Form.Group>
+                              </>
+                            )}
 
                           {(showOrg || roleName === "User") && (
                             <Form.Group className="col-md-3 form-group">
@@ -645,7 +627,7 @@ const NewUser = memo(() => {
                       <>
                         <h5 className="mb-3 mt-4">Organizer Documents</h5>
                         <Row>
-                          <Form.Group className="col mb-3 form-group">
+                          <Form.Group className="col-6 mb-3 form-group">
                             <Form.Label>GST Certificate</Form.Label>
                             <Form.Control
                               accept="image/*"
@@ -654,6 +636,24 @@ const NewUser = memo(() => {
                                 setGstData((prev) => ({
                                   ...prev,
                                   gstCertificate: e.target.files[0],
+                                }))
+                              }
+                            />
+                          </Form.Group>
+                          <Form.Group className="col-6 md-3 form-group">
+                            <Form.Label htmlFor="gstNumber">
+                              GST Number:
+                            </Form.Label>
+                            <Form.Control
+                              type="text"
+                              id="gstNumber"
+                              placeholder="Enter GST Number"
+                              required
+                              value={gstData.gstNumber}
+                              onChange={(e) =>
+                                setGstData((prev) => ({
+                                  ...prev,
+                                  gstNumber: e.target.value,
                                 }))
                               }
                             />
