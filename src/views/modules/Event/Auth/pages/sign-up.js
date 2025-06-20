@@ -207,12 +207,6 @@ const Signup = () => {
                       </Form.Group>
                     </Col>
                   </Row>
-                  <div className="d-flex justify-content-end mb-3">
-                    <Link to="/" className="d-flex align-items-center">
-                      Go To Home
-                      <Home size={18} className="ms-1" />
-                    </Link>
-                  </div>
                   <div className="text-center pb-3">
                     <Button type="submit" disabled={loading}>
                       {loading ? 'Please Wait...' : 'Sign Up'}
