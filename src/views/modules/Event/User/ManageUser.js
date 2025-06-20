@@ -1,23 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Row, Col, Button, Form, Tab, Nav, Card } from "react-bootstrap";
-import { Link, useParams } from "react-router-dom";
+import { Row, Col, Button, Form, Card } from "react-bootstrap";
+import { useParams } from "react-router-dom";
 import Select from "react-select";
 import axios from "axios";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import AgentCredit from "./AgentCredit";
-// import BookingList from "../Events/Bookings/BookingList";
-import { ArrowLeftRight, CircleChevronLeft, Shield, ShoppingBag, UserIcon, Wallet } from "lucide-react";
+import { CircleChevronLeft, Shield } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { updateUser } from "../../../../store/slices/authSlice";
 import { PasswordField } from "../CustomComponents/CustomFormFields";
-import TransactionHistory from "./Transaction/TransactionHistory";
 import LoaderComp from "../CustomUtils/LoaderComp";
 import { PRIMARY } from "../CustomUtils/Consts";
 const ManageUser = () => {
     const { api, authToken, successAlert, userRole, UserData, UserList, ErrorAlert, GetUsersList, HandleBack } = useMyContext();
     const dispatch = useDispatch();
     const { id } = useParams()
-    const [bookings, setBookings] = useState([])
     const [roles, setRoles] = useState([])
     const [users, setUsers] = useState([])
     //user states
@@ -57,6 +53,7 @@ const ManageUser = () => {
     const [selectedGates, setSelectedGates] = useState([]);
     const [ticketGroup, setTicketGroup] = useState([]);
     const [selectedTickets, setSelectedTickets] = useState([]);
+
     const UserDetail = async (source) => {
         if (errorTimeout) {
             clearTimeout(errorTimeout);
@@ -147,10 +144,11 @@ const ManageUser = () => {
             };
         }
     }, [id]);
-    
+
     const handleGateChange = (selectedOptions) => {
         setSelectedGates(selectedOptions);
     }
+
     const fetchEvents = async () => {
         let usedId = reportingUser?.role_name === 'Organizer' ? reportingUser?.value : reportingUser?.key;
         try {
@@ -195,35 +193,7 @@ const ManageUser = () => {
 
         setErrorTimeout(timeout);
     };
-    const getBookings = async () => {
-        setLoading(true);
-        await axios.get(`${api}user-bookings/${id}`, {
-            headers: {
-                'Authorization': 'Bearer ' + authToken,
-            }
-        }).then((res) => {
-            if (res.data.status) {
-                setBookings(res.data.bookings)
-            }
-        }).catch((err) =>
-            console.log(err)
-        ).finally(() => {
-            setLoading(false);
-        })   
-    }
-    const WalletData = async () => {
-        //console.log('mg')
-        await axios.get(`${api}chek-user/${id}`, {
-            headers: {
-                'Authorization': 'Bearer ' + authToken,
-            }
-        }).then((res) => {
-            if (res.data.status) {
-            }
-        }).catch((err) =>
-            console.log(err)
-        )
-    }
+
     const fetchUserRole = async (reportingId, source) => {
         if (!reportingId) return;
 
@@ -258,7 +228,6 @@ const ManageUser = () => {
         }
     };
 
-
     useEffect(() => {
         const source = axios.CancelToken.source();
 
@@ -269,8 +238,6 @@ const ManageUser = () => {
                 setDisableOrg(true);
                 setOrganisation(UserData?.organisation);
             }
-            getBookings();
-            WalletData();
         };
 
         initializeData();
@@ -294,7 +261,6 @@ const ManageUser = () => {
     const GUser = async () => {
         await GetUsersList();
     }
-    // console.log(data)
 
     const handleSubmit = async (e) => {
         if (!email) {
@@ -365,48 +331,6 @@ const ManageUser = () => {
         }
     }, [roleId, roles]);
 
-    const tabs = [
-        {
-            eventKey: "first",
-            id: "profile-tab",
-            dataTarget: "#profile",
-            ariaControls: "profile",
-            ariaSelected: "false",
-            Icon: UserIcon,
-            label: "Profile",
-            condition: true,
-        },
-        {
-            eventKey: "second",
-            id: "order-tab",
-            dataTarget: "#order",
-            ariaControls: "order",
-            ariaSelected: "false",
-            Icon: ShoppingBag,
-            label: "Bookings",
-            condition: true,
-        },
-        {
-            eventKey: "third",
-            id: "card-tab",
-            dataTarget: "#card",
-            ariaControls: "card",
-            ariaSelected: "true",
-            Icon: Wallet,
-            label: "Wallet",
-            condition: roleName === 'Agent' || roleName === 'Sponsor' || roleName === 'Accreditation',
-        },
-        {
-            eventKey: "fourth",
-            id: "card-tab",
-            dataTarget: "#card",
-            ariaControls: "card",
-            ariaSelected: "true",
-            Icon: ArrowLeftRight,
-            label: "Transactions",
-            condition: true,
-        },
-    ];
 
     useEffect(() => {
         if (roleName === 'Agent' || roleName === 'Sponsor' || roleName === 'Accreditation') {
@@ -467,460 +391,396 @@ const ManageUser = () => {
                                 </span> Manage User - {roleName}</h4>
                         </Card.Header>
                         <Card.Body>
-                            <Tab.Container defaultActiveKey="first">
-                                <Nav className="nav nav-tabs nav-iconly gap-5 mb-5 responsive-nav" id="myTab" role="tablist">
-                                    {tabs?.map(
-                                        (tab, index) =>
-                                            tab?.condition && (
-                                                <Nav.Link
-                                                    key={index}
-                                                    as="button"
-                                                    eventKey={tab.eventKey}
-                                                    className="d-flex flex-column align-items-center w-100"
-                                                    id={tab.id}
-                                                    data-bs-toggle="tab"
-                                                    data-bs-target={tab.dataTarget}
-                                                    type="button"
-                                                    role="tab"
-                                                    aria-controls={tab.ariaControls}
-                                                    aria-selected={tab.ariaSelected}
-                                                >
-                                                    <tab.Icon />
-                                                    {tab.label}
-                                                </Nav.Link>
-                                            )
-                                    )}
-                                </Nav>
-                                <Tab.Content>
-                                    <Tab.Pane
-                                        eventKey="first"
-                                        id="profile"
-                                        role="tabpanel"
-                                        aria-labelledby="profile-tab"
-                                    >
-                                        {loading ? (
-                                            <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
-                                                <LoaderComp />
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <Form noValidate validated={validated} className='row g-3 needs-validation'>
+                            {loading ? (
+                                <div className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+                                    <LoaderComp />
+                                </div>
+                            ) : (
+                                <>
+                                    <Form noValidate validated={validated} className='row g-3 needs-validation'>
+                                        <Row>
+                                            <Col xl={userRole === 'Organizer' ? '12' : '12'} lg="8">
+                                                <div className="header-title d-flex justify-content-between align-items-center w-100">
+                                                    <h4 className="card-title">Update {userType ? userType : 'User'}</h4>
+                                                    <div className="btn">
+                                                        <Button onClick={handleSubmit} variant="btn btn-primary">
+                                                            Save
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <div className="new-user-info">
                                                     <Row>
-                                                        <Col xl={userRole === 'Organizer' ? '12' : '12'} lg="8">
-                                                            <div className="header-title d-flex justify-content-between align-items-center w-100">
-                                                                <h4 className="card-title">Update {userType ? userType : 'User'}</h4>
-                                                                <div className="btn">
-                                                                    <Button onClick={handleSubmit} variant="btn btn-primary">
-                                                                        Save
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                            <div className="new-user-info">
-                                                                <Row>
+                                                        <Form.Group className="col-md-3 form-group">
+                                                            <Form.Label htmlFor="fname">Name:</Form.Label>
+                                                            <Form.Control
+                                                                type="text"
+                                                                id="fname"
+                                                                placeholder="Name"
+                                                                value={name}
+                                                                required
+                                                                onChange={(e) => setName(e.target.value)}
+                                                            />
+                                                        </Form.Group>
+                                                        <Form.Group className="col-md-3 form-group">
+                                                            <Form.Label htmlFor="email">Email:</Form.Label>
+                                                            <Form.Control
+                                                                type="email"
+                                                                id="email"
+                                                                required
+                                                                placeholder="Email"
+                                                                autoComplete="new-password"
+                                                                name="new-password-field"
+                                                                value={email}
+                                                                onChange={(e) => setEmail(e.target.value)}
+                                                            />
+                                                        </Form.Group>
+                                                        <Form.Group className="col-md-3 form-group">
+                                                            <Form.Label htmlFor="mobno">Mobile Number:</Form.Label>
+                                                            <Form.Control
+                                                                type="number"
+                                                                id="mobno"
+                                                                placeholder="Mobile Number"
+                                                                value={number}
+                                                                required
+                                                                onChange={(e) => setNumber(e.target.value)}
+                                                            />
+                                                        </Form.Group>
+                                                        {userRole !== 'User' &&
+                                                            <>
+                                                                <Form.Group className="col-md-3 form-group">
+                                                                    <Form.Label htmlFor="lname">Organisation:</Form.Label>
+                                                                    <Form.Control
+                                                                        type="text"
+                                                                        id="lname"
+                                                                        required
+                                                                        disabled={disableOrg || disable}
+                                                                        placeholder="Organisation"
+                                                                        value={organisation}
+                                                                        onChange={(e) => setOrganisation(e.target.value)}
+                                                                    />
+                                                                </Form.Group>
+                                                                {!disableOrg &&
                                                                     <Form.Group className="col-md-3 form-group">
-                                                                        <Form.Label htmlFor="fname">Name:</Form.Label>
-                                                                        <Form.Control
-                                                                            type="text"
-                                                                            id="fname"
-                                                                            placeholder="Name"
-                                                                            value={name}
-                                                                            required
-                                                                            onChange={(e) => setName(e.target.value)}
+                                                                        <Form.Label htmlFor="gstvat">Account Manager :</Form.Label>
+                                                                        <Select
+                                                                            options={UserList}
+                                                                            value={reportingUser}
+                                                                            className="js-choice"
+                                                                            select="one"
+                                                                            onChange={handleReportingUserChange}
                                                                         />
                                                                     </Form.Group>
+                                                                }
+                                                                {!disableOrg &&
+                                                                    <>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label>User Role:</Form.Label>
+                                                                            <Form.Select
+                                                                                required
+                                                                                value={roleId}
+                                                                                onChange={(e) => setRoleId(e.target.value)}
+                                                                            >
+                                                                                <option value=''>Select</option>
+                                                                                {
+                                                                                    roles?.map((item, index) => (
+                                                                                        <option value={item?.id} key={index}>{item?.name}</option>
+                                                                                    ))
+                                                                                }
+                                                                            </Form.Select>
+                                                                            <Form.Control.Feedback type="invalid">Please Select Role</Form.Control.Feedback>
+                                                                        </Form.Group>
+                                                                    </>
+                                                                }
+                                                                {roleName === 'Scanner' && (
                                                                     <Form.Group className="col-md-3 form-group">
-                                                                        <Form.Label htmlFor="email">Email:</Form.Label>
-                                                                        <Form.Control
-                                                                            type="email"
-                                                                            id="email"
-                                                                            required
-                                                                            placeholder="Email"
-                                                                            autoComplete="new-password"
-                                                                            name="new-password-field"
-                                                                            value={email}
-                                                                            onChange={(e) => setEmail(e.target.value)}
+                                                                        <Form.Label>Event Gates:</Form.Label>
+                                                                        <Select
+                                                                            isMulti
+                                                                            options={gates}
+                                                                            value={selectedGates}
+                                                                            onChange={(selected) => handleGateChange(selected)}
+                                                                            className="js-choice"
+                                                                            placeholder="Select Gates"
+                                                                            menuPortalTarget={document.body}
+                                                                            styles={{
+                                                                                menuPortal: base => ({ ...base, zIndex: 9999 })
+                                                                            }}
                                                                         />
                                                                     </Form.Group>
+                                                                )}
+                                                                {(roleName === 'Agent' || roleName === 'Sponsor' || roleName === 'Accreditation') && (
+                                                                    <>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label>Assign Events:</Form.Label>
+                                                                            <Select
+                                                                                isMulti
+                                                                                options={events}
+                                                                                value={selectedEvents}
+                                                                                onChange={(selected) => setSelectedEvents(selected)}
+                                                                                className="js-choice"
+                                                                                placeholder="Select Events"
+                                                                                inputProps={{
+                                                                                    autoComplete: "off",
+                                                                                    autoCorrect: "off",
+                                                                                    spellCheck: "off"
+                                                                                }}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label>Assign Tickets:</Form.Label>
+                                                                            <Select
+                                                                                isMulti
+                                                                                options={ticketGroup}
+                                                                                value={selectedTickets}
+                                                                                onChange={(selected) => HandleTickets(selected)}
+                                                                                className="js-choice"
+                                                                                placeholder="Select Tickets"
+                                                                                filterOption={customFilterOption}
+                                                                                // Add these properties to prevent autofill
+                                                                                inputProps={{
+                                                                                    autoComplete: "off",
+                                                                                    autoCorrect: "off",
+                                                                                    spellCheck: "off"
+                                                                                }}
+                                                                                styles={{
+                                                                                    groupHeading: (base) => ({
+                                                                                        ...base,
+                                                                                        backgroundColor: PRIMARY,
+                                                                                        color: 'white',
+                                                                                        fontWeight: 'bold',
+                                                                                        padding: '8px 12px',
+                                                                                        margin: '0 0 4px 0'
+                                                                                    }),
+                                                                                    menuList: (base) => ({
+                                                                                        ...base,
+                                                                                        padding: 0
+                                                                                    })
+                                                                                }}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label className="custom-file-input">Agent Discount</Form.Label>
+                                                                            <Form.Check className="form-switch">
+                                                                                <Form.Check.Input
+                                                                                    type="checkbox"
+                                                                                    className="me-2"
+                                                                                    id="flexSwitchCheckDefault"
+                                                                                    checked={agentDiscount}
+                                                                                    onChange={(e) => setAgentDiscount(e.target.checked)}
+                                                                                />
+                                                                            </Form.Check>
+                                                                        </Form.Group>
+                                                                    </>
+                                                                )}
+                                                                {/* //password */}
+                                                                {(userRole === 'Admin' || userRole === 'Organizer') &&
                                                                     <Form.Group className="col-md-3 form-group">
-                                                                        <Form.Label htmlFor="mobno">Mobile Number:</Form.Label>
+                                                                        <Form.Label htmlFor="password">Password:</Form.Label>
+                                                                        <PasswordField value={password} setPassword={setPassword} />
+                                                                    </Form.Group>
+                                                                }
+                                                                {(userRole === 'Admin' || userRole === 'Organizer') &&
+                                                                    <Form.Group className="col-md-3 form-group">
+                                                                        <Form.Label>User Status:</Form.Label>
+                                                                        <Form.Select
+                                                                            required
+                                                                            value={status}
+                                                                            onChange={(e) => setStatus(e.target.value)}
+                                                                        >
+                                                                            <option value='Active'>Active</option>
+                                                                            <option value='Deative'>Deactive</option>
+                                                                        </Form.Select>
+                                                                        <Form.Control.Feedback type="invalid">Please Select Role</Form.Control.Feedback>
+                                                                    </Form.Group>
+                                                                }
+                                                                {(roleName === 'Scanner' && !disableOrg) &&
+                                                                    <Form.Group className="col-md-2 form-group">
+                                                                        <Form.Label htmlFor="qr-length">QR-Data Length:</Form.Label>
                                                                         <Form.Control
                                                                             type="number"
-                                                                            id="mobno"
-                                                                            placeholder="Mobile Number"
-                                                                            value={number}
+                                                                            id="qr-length"
+                                                                            placeholder="Scan QR-Data Length"
+                                                                            value={qrLength}
+                                                                            min={6}
+                                                                            max={20}
                                                                             required
-                                                                            onChange={(e) => setNumber(e.target.value)}
+                                                                            onChange={(e) => {
+                                                                                const value = e.target.value;
+                                                                                if (value >= 6 && value <= 20) {
+                                                                                    setQRLength(value);
+                                                                                }
+                                                                            }}
                                                                         />
                                                                     </Form.Group>
-                                                                    {userRole !== 'User' &&
-                                                                        <>
-                                                                            <Form.Group className="col-md-3 form-group">
-                                                                                <Form.Label htmlFor="lname">Organisation:</Form.Label>
+                                                                }
+                                                                {(userRole === 'Admin' || userRole === 'Organizer') && roleName === 'Shop Keeper' &&
+                                                                    <div className="new-user-info">
+                                                                        <h5 className="mb-3">Shop Detail {roleName}</h5>
+                                                                        <Row>
+                                                                            <Form.Group className="col-md-4 form-group">
+                                                                                <Form.Label htmlFor="shopName">Shop Name:</Form.Label>
                                                                                 <Form.Control
                                                                                     type="text"
-                                                                                    id="lname"
+                                                                                    id="shopName"
+                                                                                    placeholder="Enter Shop Name"
                                                                                     required
-                                                                                    disabled={disableOrg || disable}
-                                                                                    placeholder="Organisation"
-                                                                                    value={organisation}
-                                                                                    onChange={(e) => setOrganisation(e.target.value)}
+                                                                                    value={shopName}
+                                                                                    onChange={(e) => setShopName(e.target.value)}
                                                                                 />
                                                                             </Form.Group>
-                                                                            {!disableOrg &&
-                                                                                <Form.Group className="col-md-3 form-group">
-                                                                                    <Form.Label htmlFor="gstvat">Account Manager :</Form.Label>
-                                                                                    <Select
-                                                                                        options={UserList}
-                                                                                        value={reportingUser}
-                                                                                        className="js-choice"
-                                                                                        select="one"
-                                                                                        onChange={handleReportingUserChange}
-                                                                                    />
-                                                                                </Form.Group>
-                                                                            }
-                                                                            {!disableOrg &&
-                                                                                <>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label>User Role:</Form.Label>
-                                                                                        <Form.Select
-                                                                                            required
-                                                                                            value={roleId}
-                                                                                            onChange={(e) => setRoleId(e.target.value)}
-                                                                                        >
-                                                                                            <option value=''>Select</option>
-                                                                                            {
-                                                                                                roles?.map((item, index) => (
-                                                                                                    <option value={item?.id} key={index}>{item?.name}</option>
-                                                                                                ))
-                                                                                            }
-                                                                                        </Form.Select>
-                                                                                        <Form.Control.Feedback type="invalid">Please Select Role</Form.Control.Feedback>
-                                                                                    </Form.Group>
-                                                                                </>
-                                                                            }
-                                                                            {roleName === 'Scanner' && (
-                                                                                <Form.Group className="col-md-3 form-group">
-                                                                                    <Form.Label>Event Gates:</Form.Label>
-                                                                                    <Select
-                                                                                        isMulti
-                                                                                        options={gates}
-                                                                                        value={selectedGates}
-                                                                                        onChange={(selected) => handleGateChange(selected)}
-                                                                                        className="js-choice"
-                                                                                        placeholder="Select Gates"
-                                                                                        menuPortalTarget={document.body}
-                                                                                        styles={{
-                                                                                            menuPortal: base => ({ ...base, zIndex: 9999 })
-                                                                                        }}
-                                                                                    />
-                                                                                </Form.Group>
-                                                                            )}
-                                                                            {(roleName === 'Agent' || roleName === 'Sponsor' || roleName === 'Accreditation') && (
-                                                                                <>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label>Assign Events:</Form.Label>
-                                                                                        <Select
-                                                                                            isMulti
-                                                                                            options={events}
-                                                                                            value={selectedEvents}
-                                                                                            onChange={(selected) => setSelectedEvents(selected)}
-                                                                                            className="js-choice"
-                                                                                            placeholder="Select Events"
-                                                                                            inputProps={{
-                                                                                                autoComplete: "off",
-                                                                                                autoCorrect: "off",
-                                                                                                spellCheck: "off"
-                                                                                            }}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label>Assign Tickets:</Form.Label>
-                                                                                        <Select
-                                                                                            isMulti
-                                                                                            options={ticketGroup}
-                                                                                            value={selectedTickets}
-                                                                                            onChange={(selected) => HandleTickets(selected)}
-                                                                                            className="js-choice"
-                                                                                            placeholder="Select Tickets"
-                                                                                            filterOption={customFilterOption}
-                                                                                            // Add these properties to prevent autofill
-                                                                                            inputProps={{
-                                                                                                autoComplete: "off",
-                                                                                                autoCorrect: "off",
-                                                                                                spellCheck: "off"
-                                                                                            }}
-                                                                                            styles={{
-                                                                                                groupHeading: (base) => ({
-                                                                                                    ...base,
-                                                                                                    backgroundColor: PRIMARY,
-                                                                                                    color: 'white',
-                                                                                                    fontWeight: 'bold',
-                                                                                                    padding: '8px 12px',
-                                                                                                    margin: '0 0 4px 0'
-                                                                                                }),
-                                                                                                menuList: (base) => ({
-                                                                                                    ...base,
-                                                                                                    padding: 0
-                                                                                                })
-                                                                                            }}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label className="custom-file-input">Agent Discount</Form.Label>
-                                                                                        <Form.Check className="form-switch">
-                                                                                            <Form.Check.Input
-                                                                                                type="checkbox"
-                                                                                                className="me-2"
-                                                                                                id="flexSwitchCheckDefault"
-                                                                                                checked={agentDiscount}
-                                                                                                onChange={(e) => setAgentDiscount(e.target.checked)}
-                                                                                            />
-                                                                                        </Form.Check>
-                                                                                    </Form.Group>
-                                                                                </>
-                                                                            )}
-                                                                            {/* //password */}
-                                                                            {(userRole === 'Admin' || userRole === 'Organizer') &&
-                                                                                <Form.Group className="col-md-3 form-group">
-                                                                                    <Form.Label htmlFor="password">Password:</Form.Label>
-                                                                                    <PasswordField value={password} setPassword={setPassword} />
-                                                                                </Form.Group>
-                                                                            }
-                                                                            {(userRole === 'Admin' || userRole === 'Organizer') &&
-                                                                                <Form.Group className="col-md-3 form-group">
-                                                                                    <Form.Label>User Status:</Form.Label>
-                                                                                    <Form.Select
-                                                                                        required
-                                                                                        value={status}
-                                                                                        onChange={(e) => setStatus(e.target.value)}
-                                                                                    >
-                                                                                        <option value='Active'>Active</option>
-                                                                                        <option value='Deative'>Deactive</option>
-                                                                                    </Form.Select>
-                                                                                    <Form.Control.Feedback type="invalid">Please Select Role</Form.Control.Feedback>
-                                                                                </Form.Group>
-                                                                            }
-                                                                            {(roleName === 'Scanner' && !disableOrg) &&
-                                                                                <Form.Group className="col-md-2 form-group">
-                                                                                    <Form.Label htmlFor="qr-length">QR-Data Length:</Form.Label>
-                                                                                    <Form.Control
-                                                                                        type="number"
-                                                                                        id="qr-length"
-                                                                                        placeholder="Scan QR-Data Length"
-                                                                                        value={qrLength}
-                                                                                        min={6}
-                                                                                        max={20}
-                                                                                        required
-                                                                                        onChange={(e) => {
-                                                                                            const value = e.target.value;
-                                                                                            if (value >= 6 && value <= 20) {
-                                                                                                setQRLength(value);
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                </Form.Group>
-                                                                            }
-                                                                            {(userRole === 'Admin' || userRole === 'Organizer') && roleName === 'Shop Keeper' &&
-                                                                                <div className="new-user-info">
-                                                                                    <h5 className="mb-3">Shop Detail {roleName}</h5>
-                                                                                    <Row>
-                                                                                        <Form.Group className="col-md-4 form-group">
-                                                                                            <Form.Label htmlFor="shopName">Shop Name:</Form.Label>
+                                                                            <Form.Group className="col-md-4 form-group">
+                                                                                <Form.Label htmlFor="shopNumber">Shop Number:</Form.Label>
+                                                                                <Form.Control
+                                                                                    type="text"
+                                                                                    id="shopNumber"
+                                                                                    placeholder="Enter Shop Number"
+                                                                                    required
+                                                                                    value={shopNumber}
+                                                                                    onChange={(e) => setShopNumber(e.target.value)}
+                                                                                />
+                                                                            </Form.Group>
+                                                                            <Form.Group className="col-md-4 form-group">
+                                                                                <Form.Label htmlFor="gstNumber">GST Number:</Form.Label>
+                                                                                <Form.Control
+                                                                                    type="text"
+                                                                                    id="gstNumber"
+                                                                                    placeholder="Enter GST Number"
+                                                                                    required
+                                                                                    value={gstNumber}
+                                                                                    onChange={(e) => setGstNumber(e.target.value)}
+                                                                                />
+                                                                            </Form.Group>
+                                                                        </Row>
+                                                                    </div>
+                                                                }
+                                                                {(roleName === 'Admin' || roleName === 'Organizer') &&
+                                                                    <>
+                                                                        <hr />
+                                                                        <h5 className="mb-3">Banking</h5>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label htmlFor="add1">Bank Name:</Form.Label>
+                                                                            <Form.Control
+                                                                                type="text"
+                                                                                id="add1"
+
+                                                                                placeholder="Bank Name"
+                                                                                value={bankName}
+                                                                                onChange={(e) => setBankName(e.target.value)}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label htmlFor="add2">Bank IFSC Code:</Form.Label>
+                                                                            <Form.Control
+                                                                                type="text"
+                                                                                id="add2"
+
+                                                                                placeholder="Bank IFSC Code"
+                                                                                value={bankIfsc}
+                                                                                onChange={(e) => setBankIfsc(e.target.value)}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label htmlFor="cname">Branch Name:</Form.Label>
+                                                                            <Form.Control
+                                                                                type="text"
+                                                                                id="cname"
+
+                                                                                placeholder="Branch Name"
+                                                                                value={bankBranch}
+                                                                                onChange={(e) => setBankBranch(e.target.value)}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <Form.Group className="col-md-3 form-group">
+                                                                            <Form.Label htmlFor="cname">Account Number:</Form.Label>
+                                                                            <Form.Control
+                                                                                type="number"
+                                                                                id="cname"
+
+                                                                                placeholder="Account Number"
+                                                                                value={bankNumber}
+                                                                                onChange={(e) => setBankNumber(e.target.value)}
+                                                                            />
+                                                                        </Form.Group>
+                                                                        <hr />
+                                                                        <div className="col-md-12">
+                                                                            <div className="row">
+                                                                                <div className="col-md-6">
+                                                                                    <h5 className="mb-3">Address</h5>
+                                                                                    <div className="row">
+                                                                                        <Form.Group className="col-md-6 form-group">
+                                                                                            <Form.Label htmlFor="city">Town/City:</Form.Label>
                                                                                             <Form.Control
                                                                                                 type="text"
-                                                                                                id="shopName"
-                                                                                                placeholder="Enter Shop Name"
-                                                                                                required
-                                                                                                value={shopName}
-                                                                                                onChange={(e) => setShopName(e.target.value)}
+                                                                                                id="city"
+
+                                                                                                placeholder="Town/City"
+                                                                                                value={city}
+                                                                                                onChange={(e) => setCity(e.target.value)}
                                                                                             />
                                                                                         </Form.Group>
-                                                                                        <Form.Group className="col-md-4 form-group">
-                                                                                            <Form.Label htmlFor="shopNumber">Shop Number:</Form.Label>
+                                                                                        <Form.Group className="col-md-6 form-group">
+                                                                                            <Form.Label htmlFor="pno">Pin Code:</Form.Label>
                                                                                             <Form.Control
-                                                                                                type="text"
-                                                                                                id="shopNumber"
-                                                                                                placeholder="Enter Shop Number"
-                                                                                                required
-                                                                                                value={shopNumber}
-                                                                                                onChange={(e) => setShopNumber(e.target.value)}
+                                                                                                type="number"
+                                                                                                id="pno"
+                                                                                                placeholder="Pin Code"
+                                                                                                value={pincode}
+                                                                                                onChange={(e) => setPincode(e.target.value)}
                                                                                             />
                                                                                         </Form.Group>
-                                                                                        <Form.Group className="col-md-4 form-group">
-                                                                                            <Form.Label htmlFor="gstNumber">GST Number:</Form.Label>
-                                                                                            <Form.Control
-                                                                                                type="text"
-                                                                                                id="gstNumber"
-                                                                                                placeholder="Enter GST Number"
-                                                                                                required
-                                                                                                value={gstNumber}
-                                                                                                onChange={(e) => setGstNumber(e.target.value)}
-                                                                                            />
-                                                                                        </Form.Group>
-                                                                                    </Row>
+                                                                                    </div>
                                                                                 </div>
-                                                                            }
-                                                                            {(roleName === 'Admin' || roleName === 'Organizer') &&
-                                                                                <>
-                                                                                    <hr />
-                                                                                    <h5 className="mb-3">Banking</h5>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label htmlFor="add1">Bank Name:</Form.Label>
-                                                                                        <Form.Control
-                                                                                            type="text"
-                                                                                            id="add1"
-
-                                                                                            placeholder="Bank Name"
-                                                                                            value={bankName}
-                                                                                            onChange={(e) => setBankName(e.target.value)}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label htmlFor="add2">Bank IFSC Code:</Form.Label>
-                                                                                        <Form.Control
-                                                                                            type="text"
-                                                                                            id="add2"
-
-                                                                                            placeholder="Bank IFSC Code"
-                                                                                            value={bankIfsc}
-                                                                                            onChange={(e) => setBankIfsc(e.target.value)}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label htmlFor="cname">Branch Name:</Form.Label>
-                                                                                        <Form.Control
-                                                                                            type="text"
-                                                                                            id="cname"
-
-                                                                                            placeholder="Branch Name"
-                                                                                            value={bankBranch}
-                                                                                            onChange={(e) => setBankBranch(e.target.value)}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <Form.Group className="col-md-3 form-group">
-                                                                                        <Form.Label htmlFor="cname">Account Number:</Form.Label>
-                                                                                        <Form.Control
-                                                                                            type="number"
-                                                                                            id="cname"
-
-                                                                                            placeholder="Account Number"
-                                                                                            value={bankNumber}
-                                                                                            onChange={(e) => setBankNumber(e.target.value)}
-                                                                                        />
-                                                                                    </Form.Group>
-                                                                                    <hr />
-                                                                                    <div className="col-md-12">
+                                                                                {userType === '' &&
+                                                                                    <div className="col-md-6">
+                                                                                        <h5 className="mb-3">Other</h5>
                                                                                         <div className="row">
-                                                                                            <div className="col-md-6">
-                                                                                                <h5 className="mb-3">Address</h5>
-                                                                                                <div className="row">
-                                                                                                    <Form.Group className="col-md-6 form-group">
-                                                                                                        <Form.Label htmlFor="city">Town/City:</Form.Label>
-                                                                                                        <Form.Control
-                                                                                                            type="text"
-                                                                                                            id="city"
-
-                                                                                                            placeholder="Town/City"
-                                                                                                            value={city}
-                                                                                                            onChange={(e) => setCity(e.target.value)}
-                                                                                                        />
-                                                                                                    </Form.Group>
-                                                                                                    <Form.Group className="col-md-6 form-group">
-                                                                                                        <Form.Label htmlFor="pno">Pin Code:</Form.Label>
-                                                                                                        <Form.Control
-                                                                                                            type="number"
-                                                                                                            id="pno"
-                                                                                                            placeholder="Pin Code"
-                                                                                                            value={pincode}
-                                                                                                            onChange={(e) => setPincode(e.target.value)}
-                                                                                                        />
-                                                                                                    </Form.Group>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            {userType === '' &&
-                                                                                                <div className="col-md-6">
-                                                                                                    <h5 className="mb-3">Other</h5>
-                                                                                                    <div className="row">
-                                                                                                        <Form.Group className="col-md-6 form-group">
-                                                                                                            <Form.Label htmlFor="gstvat">GST / VAT Tax:</Form.Label>
-                                                                                                            <Form.Control
-                                                                                                                type="text"
-                                                                                                                id="gstvat"
-                                                                                                                placeholder="GST / VAT Tax"
-                                                                                                                onChange={(e) => (e.target.value)}
-                                                                                                            />
-                                                                                                        </Form.Group>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            }
+                                                                                            <Form.Group className="col-md-6 form-group">
+                                                                                                <Form.Label htmlFor="gstvat">GST / VAT Tax:</Form.Label>
+                                                                                                <Form.Control
+                                                                                                    type="text"
+                                                                                                    id="gstvat"
+                                                                                                    placeholder="GST / VAT Tax"
+                                                                                                    onChange={(e) => (e.target.value)}
+                                                                                                />
+                                                                                            </Form.Group>
                                                                                         </div>
                                                                                     </div>
-                                                                                </>
-                                                                            }
-                                                                        </>
-                                                                    }
-                                                                </Row>
-                                                            </div>
-                                                        </Col>
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                    </>
+                                                                }
+                                                            </>
+                                                        }
                                                     </Row>
-                                                </Form>
-                                                <Card className="border border-dashed border-2 shadow-none mb-0 rounded border-primary">
-                                                    <div className="card-header">
-                                                        <div className="d-flex justify-content-between align-items-center">
-                                                            <h4 className="mb-0">Secure Your Account</h4>
-                                                            <Button className="btn btn-primary" onClick={HandleUserAuthType}>
-                                                                {auth ? "Enable OTP" : "Enable Password"}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                    <Card.Body>
-                                                        <div className="d-flex align-items-center">
-                                                            <div>
-                                                                <Shield className="text-success" />
-                                                            </div>
-                                                            <p className="ms-3 mb-0">
-                                                                {auth
-                                                                    ? "Your account is secured using a password. Click the button to enable OTP authentication instead."
-                                                                    : "Your account is secured using OTP. Click the button to enable password authentication instead."}
-                                                            </p>
-                                                        </div>
-                                                    </Card.Body>
-                                                </Card>
-                                            </>
-                                        )}
-                                    </Tab.Pane>
-                                    <Tab.Pane
-                                        eventKey="second"
-                                        id="order"
-                                        role="tabpanel"
-                                        aria-labelledby="order-tab"
-                                    >
-                                        {/* <BookingList bookings={bookings} loading={loading} setLoading={setLoading} /> */}
-                                        <div className="col-12 text-center">
-                                            <Link to="#" className="btn btn-primary">
-                                                Load More
-                                            </Link>
+                                                </div>
+                                            </Col>
+                                        </Row>
+                                    </Form>
+                                    <Card className="border border-dashed border-2 shadow-none mb-0 rounded border-primary">
+                                        <div className="card-header">
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <h4 className="mb-0">Secure Your Account</h4>
+                                                <Button className="btn btn-primary" onClick={HandleUserAuthType}>
+                                                    {auth ? "Enable OTP" : "Enable Password"}
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </Tab.Pane>
-                                    <Tab.Pane
-                                        eventKey="third"
-                                        id="card"
-                                        role="tabpanel"
-                                        aria-labelledby="card-tab"
-                                    >
-                                        {/* <h4 className="mb-4">Your Payment Options</h4> */}
-                                        <AgentCredit id={id} />
-                                    </Tab.Pane>
-                                    <Tab.Pane
-                                        eventKey="fourth"
-                                        id="card"
-                                        role="tabpanel"
-                                        aria-labelledby="card-tab"
-                                    >
-                                        <TransactionHistory id={id} />
-                                    </Tab.Pane>
-                                </Tab.Content>
-                            </Tab.Container>
+                                        <Card.Body>
+                                            <div className="d-flex align-items-center">
+                                                <div>
+                                                    <Shield className="text-success" />
+                                                </div>
+                                                <p className="ms-3 mb-0">
+                                                    {auth
+                                                        ? "Your account is secured using a password. Click the button to enable OTP authentication instead."
+                                                        : "Your account is secured using OTP. Click the button to enable password authentication instead."}
+                                                </p>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                </>
+                            )}
                         </Card.Body>
                     </Card>
                 </Col>

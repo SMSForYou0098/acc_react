@@ -1,25 +1,48 @@
-import { BadgeDollarSign, Phone, PlusIcon, ScanLine, Settings, ShoppingCart, Sparkle, Store, Tickets, Trash2, UsersRound } from "lucide-react";
-import { Row, Col, Card, Modal, Button } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Settings, Trash2, CheckCircle, XCircle, Clock, Eye, IdCard } from "lucide-react";
+import { Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CustomTooltip } from "../CustomUtils/CustomTooltip";
 import React, { memo, Fragment, useState, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 import axios from "axios";
-import TableWithSearch from "../CustomUtils/TableWithSearch";
+import CommonListing from "../CustomUtils/CommonListing";
+import UserDetailModal from "./UserDetailModal";
 
 const Users = memo(() => {
-  const { api, formatDateTime, successAlert, userRole, authToken, ErrorAlert } = useMyContext();
+  const { api, formatDateTime, successAlert, authToken, ErrorAlert } = useMyContext();
   const navigate = useNavigate();
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState([]);
+  const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('');
-  
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const fetchZones = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${api}zone`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        }
+      });
+      if (response.data.status) {
+        setZones(response.data.data);
+      } else {
+        setZones([]);
+      }
+    } catch (error) {
+      const err = error.response?.data?.message || error.response?.data?.error || `Failed to fetch Data`;
+      ErrorAlert(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [api, authToken, ErrorAlert]);
+
   const GetUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const queryParams = dateRange ? `?date=${dateRange}` : '';
-      const url = `${api}users${queryParams}?type=all`;
+      const url = `${api}users`;
       //console.log(url)
       const res = await axios.get(url, {
         headers: {
@@ -34,18 +57,16 @@ const Users = memo(() => {
     } finally {
       setLoading(false);
     }
-  }, [authToken, api, dateRange]);
+  }, [authToken, api]);
 
   useEffect(() => {
+    fetchZones();
     GetUsers();
-  }, [GetUsers, dateRange]);
-
-
-
+  }, [fetchZones, GetUsers]);
 
   const AssignCredit = useCallback((id) => {
     navigate(`manage/${id}`);
-  }, [navigate]); // Ensures function doesn't recreate on every render
+  }, [navigate]);
 
   const HandleDelete = useCallback(async (id) => {
     if (!id) return;
@@ -74,23 +95,65 @@ const Users = memo(() => {
       }
     }
   }, [authToken, ErrorAlert, GetUsers, successAlert, api]);
+  const handleApproval = useCallback(async (id, status) => {
+    if (!id) return;
 
-  const [show, setShow] = useState(false);
-  const HandleNaviGate = () => {
-    if (userRole === 'Organizer') {
-      setShow(true)
-    }
-    else {
-      navigate('new')
-    }
-  }
+    const actionText = status === "1" ? "approve" : "reject";
 
-  const HandleQueryParam = (param) => {
-    if (param) {
-      setShow(false)
-      navigate(`/dashboard/users/new?type=${param}`);
+    const result = await Swal.fire({
+      title: `Are you sure?`,
+      text: `You are about to ${actionText} this user.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: `Yes, ${actionText} user!`,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await axios.post(`${api}user-approval/${id}`,
+          { status: parseInt(status) },
+          {
+            headers: {
+              Authorization: "Bearer " + authToken,
+            },
+          }
+        );
+
+        if (res.data?.status) {
+          GetUsers();
+          successAlert("Success", `User ${status === "1" ? "approved" : "rejected"} successfully.`);
+        }
+      } catch (err) {
+        ErrorAlert(err.response?.data?.message || "An error occurred");
+      }
     }
-  }
+  }, [authToken, ErrorAlert, GetUsers, successAlert, api]);
+
+  const handlePreview = useCallback(async (id) => {
+    try {
+      // Find user in current state first to show modal quickly
+      const user = users.find(u => u.id === id);
+      if (user) {
+        setSelectedUser(user);
+        setShowModal(true);
+      } else {
+        // If not found, fetch from API
+        const res = await axios.get(`${api}user/${id}`, {
+          headers: {
+            Authorization: "Bearer " + authToken,
+          },
+        });
+        if (res.data?.status) {
+          setSelectedUser(res.data.data);
+          setShowModal(true);
+        }
+      }
+    } catch (err) {
+      ErrorAlert(err.response?.data?.message || "Failed to load user details");
+    }
+  }, [users, api, authToken, ErrorAlert]);
+
+
   const columns = [
     {
       dataField: 'id',
@@ -154,8 +217,15 @@ const Users = memo(() => {
       sort: true
     },
     {
-      dataField: 'reporting_user',
-      text: 'Account Manager',
+      dataField: 'comp_name',
+      text: 'Company Name',
+      headerAlign: 'center',
+      align: 'center',
+      sort: true
+    },
+    {
+      dataField: 'org_name',
+      text: 'Organiser',
       headerAlign: 'center',
       align: 'center',
       sort: true
@@ -163,10 +233,160 @@ const Users = memo(() => {
     {
       dataField: 'status',
       text: 'Status',
-      formatter: (cell) => {
-        const circleClass = cell === "0" ? 'bg-danger' : 'bg-success';
-        const statusText = cell === "0" ? 'Deactive' : 'Active';
-        return <span className={`d-inline-block rounded-circle ${circleClass}`} style={{ width: '12px', height: '12px' }} title={statusText} />;
+      formatter: (cell, row) => {
+        if (row.role_name !== 'User') {
+          return (
+            <CustomTooltip text="Approved">
+              <Button
+                variant="outline-success"
+                className="btn-sm btn-icon"
+                disabled
+              >
+                <CheckCircle size={16} />
+              </Button>
+            </CustomTooltip>
+          );
+        }
+        let badgeClass = '';
+        let statusText = '';
+        let statusIcon = null;
+
+        if (cell === 0) {
+          badgeClass = 'warning';
+          statusText = 'Pending';
+          statusIcon = <Clock size={16} />;
+        } else if (cell === 1) {
+          badgeClass = 'success';
+          statusText = 'Approved';
+          statusIcon = <CheckCircle size={16} />;
+        } else {
+          badgeClass = 'danger';
+          statusText = 'Rejected';
+          statusIcon = <XCircle size={16} />;
+        }
+
+        return (
+          <CustomTooltip text={statusText}>
+            <Button
+              variant={`outline-${badgeClass}`}
+              className="btn-sm btn-icon"
+              disabled
+            >
+              {statusIcon}
+            </Button>
+          </CustomTooltip>
+        );
+      },
+      headerAlign: 'center',
+      align: 'center',
+      sort: true
+    },
+    {
+      dataField: 'approval',
+      text: 'Approval Actions',
+      formatter: (cell, row) => {        // Only show approval buttons for pending users
+        if (row.status === 0) {
+          if (row.role_name === 'User' && row.status === 0) {
+            return (
+              <div className="d-flex gap-2 justify-content-center">
+                <CustomTooltip text="Approve User">
+                  <Button
+                    variant={`outline-success`}
+                    className="btn-sm btn-icon"
+                    onClick={() => handleApproval(row.id, "1")}
+                  >
+                    <CheckCircle size={16} />
+                  </Button>
+                </CustomTooltip>
+                <CustomTooltip text="Reject User">
+                  <Button
+                    variant={`outline-danger`}
+                    className="btn-sm btn-icon"
+                    onClick={() => handleApproval(row.id, "2")}
+                  >
+                    <XCircle size={16} />
+                  </Button>
+                </CustomTooltip>
+              </div>
+            );
+          }
+        }
+        return <span className="text-muted">No action needed</span>;
+      },
+      headerAlign: 'center',
+      align: 'center'
+    },
+    {
+      dataField: 'zones',
+      text: 'Zones',
+      formatter: (cell, row) => {
+        // If role is not User, show a custom text
+        if (row.role_name !== 'User') {
+          return <span className="text-muted">No action needed</span>;
+        }
+
+        const assignedZoneIds = cell || [];
+
+        // Show up to 5 zones total (both assigned and unassigned)
+        const displayZones = zones.slice(0, 5);
+        const remainingZones = zones.length > 5 ? zones.length - 5 : 0;
+
+        return (
+          <div className="d-flex gap-1 justify-content-center">
+            {/* Display the first 5 zones (or fewer if less exist) */}
+            {displayZones.map((zone, index) => {
+              const isAssigned = Array.isArray(assignedZoneIds) &&
+                assignedZoneIds.includes(zone.id);
+
+              return (
+                <CustomTooltip key={index} text={zone.title || zone.name}>
+                  <Button
+                    size="sm"
+                    variant={isAssigned ? "success" : "danger"}
+                    className="rounded-3 border shadow-sm px-2 py-1"
+                    style={{
+                      minWidth: '32px',
+                      height: '26px'
+                    }}
+                    disabled
+                  >
+                    {isAssigned ? (
+                      <CheckCircle size={14} className="mx-auto" />
+                    ) : (
+                      <XCircle size={14} className="mx-auto" opacity={0.6} />
+                    )}
+                  </Button>
+                </CustomTooltip>
+              );
+            })}
+
+            {/* If there are more zones than we can display, show a +n button */}
+            {remainingZones > 0 && (
+              <CustomTooltip
+                text={`${remainingZones} more zone${remainingZones > 1 ? 's' : ''}`}
+              >
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="rounded-3 border shadow-sm px-2 py-1"
+                  style={{
+                    minWidth: '32px',
+                    height: '26px',
+                    fontSize: '0.7rem'
+                  }}
+                  disabled
+                >
+                  +{remainingZones}
+                </Button>
+              </CustomTooltip>
+            )}
+
+            {/* If no zones exist at all */}
+            {zones.length === 0 && (
+              <span className="text-muted small">No zones available</span>
+            )}
+          </div>
+        );
       },
       headerAlign: 'center',
       align: 'center',
@@ -186,6 +406,19 @@ const Users = memo(() => {
       formatter: (cell, row) => {
         const isDisabled = row?.is_deleted || row?.status === "1";
         const actions = [
+          {
+            tooltip: "Genrate ID Card",
+            onClick: () => handlePreview(row.id),
+            icon: <IdCard size={16} />,
+            variant: "secondary",
+            isDisabled: row?.status !== 1
+          },
+          {
+            tooltip: "Preview User",
+            onClick: () => handlePreview(row.id),
+            icon: <Eye size={16} />,
+            variant: "info"
+          },
           {
             tooltip: "Manage User",
             onClick: () => AssignCredit(row.id),
@@ -208,7 +441,7 @@ const Users = memo(() => {
                   variant={action.variant}
                   className="btn-sm btn-icon"
                   onClick={action.onClick}
-                  disabled={isDisabled}
+                  disabled={action?.isDisabled}
                 >
                   {action.icon}
                 </Button>
@@ -222,96 +455,25 @@ const Users = memo(() => {
     }
 
   ];
-  const roles = [
-    { label: 'POS', icon: <ShoppingCart size={16}/>, key: 'POS' },
-    { label: 'Agent', icon: <UsersRound size={16}/>, key: 'Agent' },
-    { label: 'Scanner', icon: <ScanLine size={16}/>, key: 'Scanner' },
-    { label: 'Support Executive', icon: <Phone size={16}/>, key: 'Support-Executive' },
-    { label: 'Shop Keeper', icon: <Store size={16}/>, key: 'Shop-Keeper' },
-    { label: 'Box Office Manager', icon: <Tickets size={16}/>, key: 'Box-Office-Manager' },
-    { label: 'Sponsor', icon: <BadgeDollarSign size={16}/>, key: 'Sponsor' },
-    { label: 'Accreditation', icon: <Sparkle size={16}/>, key: 'Accreditation' },
 
-  ];
   return (
     <Fragment>
-      {/* print model  */}
-      <Modal show={show} onHide={() => setShow(false)} size="xl">
-        <Modal.Header closeButton>
-          <Modal.Title>Select User Type</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row>
-            {roles?.map(({ label, icon, key }) => (
-              <Col lg="3" className="mb-2" key={key}>
-                <Button
-                  variant="outline-primary"
-                  className="w-100 text-start p-3 d-flex gap-3 align-items-center hover-effect rounded-3"
-                  onClick={() => HandleQueryParam(key)}
-                  style={{
-                    transition: 'all 0.3s ease',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.color = 'var(--bs-primary)';
-                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.backgroundColor = 'var(--bs-primary-tint-20)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.backgroundColor = '';
-                  }}
-                >
-                  <div className="btn btn-sm btn-icon bg-primary-subtle text-primary rounded-circle p-2">
-                    <i className="icon">{icon}</i>
-                  </div>
-                  <span className="fw-medium">{label}</span>
-                </Button>
-              </Col>
-            ))}
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-        </Modal.Footer>
-      </Modal>
-      {/* print model end */}
-
-      <Row>
-        <Col sm="12">
-          <Card>
-            <Card.Header className="d-flex justify-content-between">
-              <div className="header-title">
-                <h4 className="card-title">Users</h4>
-              </div>
-              <div className="button">
-                <h4 className="card-title">
-                  <Link onClick={() => HandleNaviGate()}>
-                    <Button className="gap-1 hvr-icon-sink-away hvr-curl-top-right border-0 d-flex align-content-center justify-content-center">
-                      New User
-                      <PlusIcon size={22} />
-                    </Button>
-                  </Link>
-                </h4>
-              </div>
-            </Card.Header>
-            <Card.Body className="px-0">
-              <TableWithSearch
-                setDateRange={setDateRange}
-                title="Users"
-                data={users}
-                columns={columns}
-                loading={loading}
-                keyField="id"
-                searchPlaceholder="Search users..."
-                pageOptions={[10, 25, 50, 100]}
-              />
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      <UserDetailModal
+        zones={zones}
+        showModal={showModal}
+        setShowModal={setShowModal}
+        selectedUser={selectedUser}
+        handleApproval={handleApproval}
+      />
+      <CommonListing
+        tile={'Users'}
+        data={users}
+        loading={loading}
+        columns={columns}
+        searchPlaceholder="Search users..."
+        bookingLink={'new'}
+        ButtonLable={'New User'}
+      />
     </Fragment>
   );
 });

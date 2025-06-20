@@ -12,7 +12,6 @@ const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
 
-  const [smsConfig, setSmsConfig] = useState([]);
   const [currencyMaster, setCurrencyMaster] = useState([]);
   const [UserList, setUserList] = useState([]);
   const [amount, setAmount] = useState(0);
@@ -27,21 +26,7 @@ export const MyContextProvider = ({ children }) => {
   const isLoggedIn  = UserData && Object.keys(UserData)?.length > 0
   const userRole = UserData?.role;
   // template list 
-  const GetEventSmsConfig = async (id) => {
-    try {
-      const res = await axios.get(`${api}sms-api/${id}`, {
-        headers: {
-          'Authorization': 'Bearer ' + authToken,
-        }
-      });
-      if (res.data.status) {
-        const configData = res.data;
-        setSmsConfig(configData?.config);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
+
   const GetUsersList = async () => {
     try {
       const response = await axios.get(`${api}users/list`, {
@@ -101,7 +86,6 @@ export const MyContextProvider = ({ children }) => {
     GetSystemSetting()
     fetchData();
     setCurrencyMaster(currencyData)
-    const userAgent = navigator.userAgent;
   }, []);
 
   useEffect(() => {
@@ -511,41 +495,6 @@ export const MyContextProvider = ({ children }) => {
     return str;
   }
 
-  const createSlug = (title) => {
-    if (title) {
-      return title
-        .replace(/&/g, 'and')
-        .replace(/[\s]+/g, '-')
-        .replace(/[^\w-]+/g, '');
-    }
-    return '';
-  };
-  const convertSlugToTitle = (slug) => {
-    if (slug) {
-      return slug
-        .replace(/-/g, ' ')
-        .replace(/\b\w/g);
-    }
-  };
-
-  const EventCategory = async (setState) => {
-    try {
-      const res = await axios.get(`${api}category-title`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`
-        }
-      })
-      const transformedData = Object.values(res.data.categoryData).map(item => ({
-        label: item.title,
-        value: item.id,
-      }));
-      setState(transformedData)
-      return transformedData
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
   const fetchCategoryData = async (category) => {
     try {
       const response = await axios.get(`${api}category-data/${category}`);
@@ -585,6 +534,7 @@ export const MyContextProvider = ({ children }) => {
     window.history.back();
   }
   const [isScrolled, setIsScrolled] = useState(false);
+  
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) { // Change 10 to your desired scroll threshold
@@ -599,23 +549,6 @@ export const MyContextProvider = ({ children }) => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-  
-  const UserCredits = async (id) => {
-    if (id) {
-      try {
-        const response = await axios.get(`${api}chek-user/${id}`,
-          {
-            headers: {
-              'Authorization': 'Bearer ' + authToken,
-            }
-          });
-         setAmount(response.data.balance.total_credits || 0);
-        return response.data.balance.total_credits || 0;
-      } catch {
-        // Handle error
-      } 
-    }
-  }
 
 
   const contextValue = {
@@ -639,13 +572,9 @@ export const MyContextProvider = ({ children }) => {
     AskAlert,
     handleWhatsappAlert,
     sendTickets,
-    GetEventSmsConfig,
     formateTemplateTime,
     convertTo12HourFormat,
     truncateString,
-    createSlug,
-    convertSlugToTitle,
-    EventCategory,
     extractDetails,
     sendMail,
     systemSetting,
@@ -657,7 +586,6 @@ export const MyContextProvider = ({ children }) => {
     isScrolled,
     GetSystemVars,
     loader,
-    UserCredits,
     amount,
     isLoggedIn,
     hideMobileMenu,

@@ -159,7 +159,7 @@ const VerticalNav = memo(() => {
           icon: <SettingIcon />,
         },
         {
-          title: "Category",
+          title: "Category & Zones",
           path: "/dashboard/settings/category",
           minititle: "CTG",
           // permission: "View Admin Setting",

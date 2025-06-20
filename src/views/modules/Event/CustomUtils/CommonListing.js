@@ -2,11 +2,10 @@ import React, { Fragment } from 'react'
 import MobBookingButton from './BookingUtils/MobBookingButton'
 import { useMyContext } from '../../../../Context/MyContextProvider'
 import { Card, Col, Row } from 'react-bootstrap';
-import BookingCount from '../Events/Bookings/BookingCount';
-import CustomDataTable from '../Wallet/CustomDataTable';
+import CustomDataTable from '../CustomHooks/CustomDataTable';
 
 const CommonListing = (props) => {
-    const { bookings, dateRange, loading, columns, setDateRange, bookingLink, tile, exportPermisson, ButtonLable, ShowReportCard = true,searchPlaceholder,showGatewayAmount,ignoredColumnsProp } = props;
+    const { data,  loading, columns, setDateRange, bookingLink, tile, exportPermisson, ButtonLable,searchPlaceholder,ignoredColumnsProp } = props;
     const { UserPermissions, isMobile } = useMyContext();
     return (
         <Fragment>
@@ -17,13 +16,6 @@ const CommonListing = (props) => {
             }
             {/* print model end */}
             <Row>
-                {ShowReportCard && (
-                    <Col xs={12} md={12} lg={12}>
-                        <Row>
-                            <BookingCount data={bookings} date={dateRange} type={tile} showGatewayAmount={showGatewayAmount}/>
-                        </Row>
-                    </Col>
-                )}
                 <Col sm="12">
                     <Card>
                         <Row className="d-flex align-items-center">
@@ -34,7 +26,7 @@ const CommonListing = (props) => {
                                 setDateRange={setDateRange}
                                 bookingLink={bookingLink}
                                 buttonLable={ButtonLable}
-                                data={bookings}
+                                data={data}
                                 ExportPermisson={UserPermissions.includes(exportPermisson)}
                                 columns={columns}
                                 ignoredColumnsProp={ignoredColumnsProp}

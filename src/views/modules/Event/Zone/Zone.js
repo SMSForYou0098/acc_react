@@ -1,7 +1,7 @@
 import React from 'react';
 import GenericEntityManager from '../Common/GenericEntityManager';
 
-const Category = () => {
+const Zone = () => {
     const formFields = [
         {
             name: 'title',
@@ -24,9 +24,9 @@ const Category = () => {
     ];    
     return (
         <GenericEntityManager
-            entityName="Category"
-            entityNamePlural="Categories"
-            apiEndpoint="category"
+            entityName="Zone"
+            entityNamePlural="Zones"
+            apiEndpoint="zone"
             formFields={formFields}
             cardSize={12}
             noCard={true}
@@ -34,5 +34,5 @@ const Category = () => {
     )
 }
 
-Category.displayName = "Category";
-export default Category;
+Zone.displayName = "Zone";
+export default Zone;
