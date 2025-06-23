@@ -1,13 +1,26 @@
 import React, { memo, Fragment, useState, useEffect } from "react";
 import { Row, Col, Form, Button, Card } from "react-bootstrap";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
+// import avatars1 from "../../../../assets/images/avatars/01.png";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import axios from "axios";
 import Select from "react-select";
 import { Pencil, User2 } from "lucide-react";
 const NewUser = memo(() => {
-  const {api,successAlert,userRole,UserList,UserData,authToken,ErrorAlert,HandleBack} = useMyContext();
+  const {
+    api,
+    successAlert,
+    userRole,
+    UserList,
+    UserData,
+    authToken,
+    ErrorAlert,
+    HandleBack,
+  } = useMyContext();
   const location = useLocation();
+
+  const {id}= useParams();
+  console.log('id',id)
 
   const [users, setUsers] = useState(UserList);
   const [userData, setUserData] = useState({
@@ -34,7 +47,7 @@ const NewUser = memo(() => {
   const [userType, setUserType] = useState("");
   const [disableOrg, setDisableOrg] = useState(false);
   const [showOrg, setShowOrg] = useState(false);
-  const [roleName, setRoleName] = useState();
+  const [roleName, setRoleName] = useState('');
   const [gstData, setGstData] = useState({
     gstNumber: "",
     gstCertificate: "",
@@ -53,6 +66,8 @@ const NewUser = memo(() => {
     photoUrl: "",
     photoIdName: "",
   });
+
+  
 
   const handleFileChange = (key, file) => {
     if (!file) return;
@@ -119,7 +134,59 @@ const NewUser = memo(() => {
     setSelectedGates(selectedOptions);
   };
 
+  const getEdituserData = async () => {
+    try {
+      const source = axios.CancelToken.source();
+
+      const response = await axios.get(`${api}edit-user/${id}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        cancelToken: source?.token,
+      });
+      console.log("response", response);
+      if (response.data.status) {
+        const user = response.data.user;
+
+        // Set userData
+        setUserData((prev) => ({
+          ...prev,
+          name: user.name || "",
+          email: user.email || "",
+          number: user.number || "",
+          password: "", // keep it blank in edit mode
+          photoId: user.photoId || "", // load file if required later
+          photo: user.photo || "", // load file if required later
+        }));
+
+        // Set gstData
+        setGstData({
+          gstNumber: user.gst_no || "",
+          gstCertificate: user.gst_certificate || "",
+          companyLetter: user.company_letter || "",
+          companyName: user.company_name || "",
+        });
+
+        // Set addressData
+        setAddressData({
+          state: user.state || "",
+          city: user.city || "",
+          pinCode: user.pincode || "",
+          address: user.address || "",
+        });
+        setRoleId(user.role.id);
+        setRoleName(user.role.name);
+      }
+    } catch (error) {}
+  };
+
+  useEffect(()=>{
+    if(id){
+      getEdituserData();
+    }
+  },[id])
   useEffect(() => {
+    
     if (userRole === "Organizer") {
       setReportingUser({ value: UserData?.id, label: UserData?.id });
       setDisableOrg(true);
@@ -141,10 +208,13 @@ const NewUser = memo(() => {
     };
   }, [roleName]);
 
+
+
   useEffect(() => {
     if (userType && roles && Array.isArray(roles)) {
       const role = roles.find((item) => item?.name === userType);
       if (role) {
+
         setRoleName(role?.name);
         setRoleId(role?.id);
       }
@@ -159,6 +229,8 @@ const NewUser = memo(() => {
     setAddressData((prev) => ({ ...prev, [key]: value }));
   };
 
+  console.log("companyoptiona", selectedCompany);
+console.log('roleName',roleName)
   const handleRoleChange = async (e) => {
     const selectedRoleId = e.target.value;
     setRoleId(selectedRoleId);
@@ -186,8 +258,12 @@ const NewUser = memo(() => {
 
   const HandleReportingUser = async (user) => {
     setReportingUser(user);
-    setSelectedCompany(null);
-
+    setSelectedCompany(null); // Clear previous company selection
+    //     setGstData((prev)=>({
+    //       //       ...prev,
+    //       //       companyName:user?.organisation
+    //       //     }))
+    //       // }
     if (roleName === "User") {
       try {
         const response = await axios.get(`${api}fatch-company/${user.value}`, {
@@ -209,113 +285,112 @@ const NewUser = memo(() => {
         setCompanyOptions([]);
       }
     }
-
   };
 
   const handleEventChange = (selectedOptions) => {
     setSelectedEvents(selectedOptions);
   };
-
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (roleName !== "User") {
-      if (!userData.email) {
-        ErrorAlert("Please enter email");
-        return;
-      }
+  e.preventDefault();
+
+  // Basic validation
+  if (roleName !== "User" && !userData.email) {
+    return ErrorAlert("Please enter email");
+  }
+
+  if (!/^\d{10}$|^\d{12}$/.test(userData.number)) {
+    return ErrorAlert("Mobile number must be 10 or 12 digits only");
+  }
+
+  if (userData.password !== repeatPassword) {
+    return ErrorAlert("Passwords do not match.");
+  }
+
+  const form = e.currentTarget;
+  if (!form.checkValidity()) {
+    e.stopPropagation();
+    return;
+  }
+
+  setValidated(true);
+
+  try {
+    const formData = new FormData();
+
+    // General fields
+    formData.append("name", userData?.name || "");
+    formData.append("email", userData?.email || "");
+    formData.append("number", userData?.number || "");
+    formData.append("password", userData?.password || "");
+    formData.append("photo", userData?.photo || "");
+    formData.append("photoId", userData?.photoId || "");
+
+    // Address fields
+    formData.append("pincode", addressData?.pinCode || "");
+    formData.append("state", addressData?.state || "");
+    formData.append("city", addressData?.city || "");
+    formData.append("address", addressData?.address || "");
+
+    formData.append("reporting_user", UserData.id);
+    formData.append("role_id", roleId);
+    formData.append("role_name", roleName);
+    formData.append("authentication", enablePasswordAuth);
+
+    // Role-specific fields
+    if (roleName === "Company") {
+      formData.append("category_id", selectedEvents?.value);
     }
 
-    if (!/^\d{10}$|^\d{12}$/.test(userData.number)) {
-      ErrorAlert("Mobile number must be 10 or 12 digits only");
-      return;
-    }
-    if (userData.password !== repeatPassword) {
-      ErrorAlert("Passwords do not match.");
-      return;
+    if (roleName === "User") {
+      if (!selectedCompany?.value) {
+        return ErrorAlert("Please select Company");
+      }
+      formData.append("comp_id", selectedCompany?.value);
     }
 
-
-    const form = e.currentTarget;
-    if (form.checkValidity() === false) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
+    if (roleName === "User" || roleName === "Company") {
+      if (!reportingUser?.value) {
+        return ErrorAlert("Please select Organizer");
+      }
+      formData.append("org_id", reportingUser?.value);
     }
 
-    setValidated(true);
+    if (roleName === "Company" || roleName === "Organizer") {
+      formData.append("organisation", gstData?.companyName || "");
+      formData.append("gst_no", gstData?.gstNumber || "");
+    }
 
-    try {
-      const formData = new FormData();
-      // ✅ Append regular fields
+    if (gstData?.gstCertificate) {
+      formData.append("gstCertificate", gstData.gstCertificate);
+    }
 
-      formData.append("name", userData?.name);
-      formData.append("email", userData?.email);
-      formData.append("number", userData?.number);
-      formData.append("password", userData?.password);
-      formData.append("photo", userData?.photo);
-      formData.append("photoId", userData?.photoId);
-      formData.append("pincode", addressData?.pinCode);
-      formData.append("state", addressData?.state);
-      formData.append("city", addressData?.city);
-      formData.append("address", addressData?.address);
-      formData.append("reporting_user", UserData.id)
-      if (roleName === "User" || roleName === "Company") {
-        if (roleName === "Company") {
-          formData.append("category_id", selectedEvents.value);
-        }
-        if (roleName === "User") {
-          if (!selectedCompany.value) {
-            ErrorAlert("Please select Company");
-            return
-          }
-          formData.append("comp_id", selectedCompany?.value);
-        }
-        if (!reportingUser?.value) {
-          ErrorAlert("Please select Organizer");
-          return;
-        }
-        formData.append("org_id", reportingUser?.value);
-      }
-      if (roleName === "Company" || roleName === "Organizer") {
-        formData.append("organisation", gstData.companyName);
-        formData.append("gst_no", gstData.gstNumber); // ✅ Use from gstData
-        if (roleName === "Company") {
-        }
-      }
-      // formData.append("reporting_user", reportingUser?.value || "");
-      formData.append("role_id", roleId);
-      formData.append("role_name", roleName);
-      formData.append("authentication", enablePasswordAuth);
+    if (gstData?.companyLetter) {
+      formData.append("companyLetter", gstData.companyLetter);
+    }
 
-      // ✅ GST-related fields
-      if (gstData.gstCertificate) {
-        formData.append("gstCertificate", gstData.gstCertificate);
-      }
-
-      if (gstData.companyLetter) {
-        formData.append("companyLetter", gstData.companyLetter);
-      }
-
-      if (roleName === "Scanner") {
-        selectedGates.forEach((gate, idx) => {
-          formData.append(`gates[${idx}]`, gate.value);
-        });
-      }
-
-      const response = await axios.post(`${api}create-user`, formData, {
-        headers: {
-          Authorization: "Bearer " + authToken,
-          "Content-Type": "multipart/form-data",
-        },
+    if (roleName === "Scanner" && Array.isArray(selectedGates)) {
+      selectedGates.forEach((gate, idx) => {
+        formData.append(`gates[${idx}]`, gate.value);
       });
-
-      successAlert("User created", response.data.message);
-      HandleBack();
-    } catch (error) {
-      ErrorAlert(error.response?.data?.error || error.response?.data?.message);
-      console.error("ERROR SUBMITTING USER", error)
     }
-  };
+
+    // API call
+    const response = await axios.post(`${api}create-user`, formData, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    successAlert("User created", response.data.message);
+    HandleBack();
+  } catch (error) {
+    const message = error.response?.data?.error || error.response?.data?.message || "Submission failed";
+    ErrorAlert(message);
+    console.error("ERROR SUBMITTING USER", error);
+  }
+};
+
 
   return (
     <Fragment>
@@ -330,7 +405,7 @@ const NewUser = memo(() => {
               <Card>
                 <Card.Header className="d-flex justify-content-between">
                   <div className="header-title">
-                    <h4 className="card-title">Add New User</h4>
+                    <h4 className="card-title">{id ? "Update User" : 'Add New User'}</h4>
                   </div>
                 </Card.Header>
                 <Card.Body>
@@ -384,7 +459,7 @@ const NewUser = memo(() => {
                 <Card.Header className="d-flex justify-content-between">
                   <div className="header-title d-flex justify-content-between align-items-center w-100">
                     <h4 className="card-title">
-                      New {userType ? userType : "User"} Information
+                      {id ? 'Update' : 'New'} {userType ? userType : "User"} Information
                     </h4>
                     <div className="btn">
                       <Button onClick={handleSubmit} variant="btn btn-primary">
