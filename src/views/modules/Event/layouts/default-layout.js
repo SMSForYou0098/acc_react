@@ -1,10 +1,8 @@
 import React, { memo, Fragment, useEffect, useState, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import MobileBottomMenu from "./MobileBottomMenu";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { ChevronUp } from "lucide-react";
-import StaticMissedCall from "./StaticMissedCall";
 import styled from 'styled-components';
 import ShowWelcomeModal from "../components/WelcomeModal";
 
@@ -76,9 +74,6 @@ const DefaultLayout = memo((props) => {
               <Outlet />
             </div>
           </main>
-          {/* <MainFooter /> */}
-          {isMobile && <MobileBottomMenu hideMenu={hideMobileMenu}/>}
-          <StaticMissedCall />
           {showBackToTop && (
             <div id="back-to-top">
               <Button size="xs" variant="secondary p-0 position-fixed top" href="#top" style={{ bottom: '6rem' }}>

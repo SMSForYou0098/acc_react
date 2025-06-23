@@ -1,22 +1,12 @@
 import React, { memo, Fragment, useState, useEffect } from "react";
 import { Row, Col, Form, Button, Card } from "react-bootstrap";
 import { Link, useLocation } from "react-router-dom";
-// import avatars1 from "../../../../assets/images/avatars/01.png";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import axios from "axios";
 import Select from "react-select";
 import { Pencil, User2 } from "lucide-react";
 const NewUser = memo(() => {
-  const {
-    api,
-    successAlert,
-    userRole,
-    UserList,
-    UserData,
-    authToken,
-    ErrorAlert,
-    HandleBack,
-  } = useMyContext();
+  const {api,successAlert,userRole,UserList,UserData,authToken,ErrorAlert,HandleBack} = useMyContext();
   const location = useLocation();
 
   const [users, setUsers] = useState(UserList);
@@ -128,6 +118,7 @@ const NewUser = memo(() => {
   const handleGateChange = (selectedOptions) => {
     setSelectedGates(selectedOptions);
   };
+
   useEffect(() => {
     if (userRole === "Organizer") {
       setReportingUser({ value: UserData?.id, label: UserData?.id });
@@ -168,8 +159,6 @@ const NewUser = memo(() => {
     setAddressData((prev) => ({ ...prev, [key]: value }));
   };
 
-  console.log("companyoptiona", selectedCompany);
-
   const handleRoleChange = async (e) => {
     const selectedRoleId = e.target.value;
     setRoleId(selectedRoleId);
@@ -197,12 +186,8 @@ const NewUser = memo(() => {
 
   const HandleReportingUser = async (user) => {
     setReportingUser(user);
-    setSelectedCompany(null); // Clear previous company selection
-    //     setGstData((prev)=>({
-    //       //       ...prev,
-    //       //       companyName:user?.organisation
-    //       //     }))
-    //       // }
+    setSelectedCompany(null);
+
     if (roleName === "User") {
       try {
         const response = await axios.get(`${api}fatch-company/${user.value}`, {
@@ -224,11 +209,13 @@ const NewUser = memo(() => {
         setCompanyOptions([]);
       }
     }
+
   };
 
   const handleEventChange = (selectedOptions) => {
     setSelectedEvents(selectedOptions);
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (roleName !== "User") {

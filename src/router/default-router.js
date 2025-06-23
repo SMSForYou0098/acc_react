@@ -62,7 +62,7 @@ export const DefaultRouter = [
           },
           {
             path: "users/manage/:id",
-            element: <ManageUser />,
+            element: <NewUser />,
             name: 'User List',
             active: 'pages',
             subActive: 'User'

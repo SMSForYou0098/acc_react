@@ -1,5 +1,4 @@
 import React from "react";
-import "./assets/modules/landing-pages/scss/landing-pages.scss";
 import "shepherd.js/dist/css/shepherd.css";
 import "flatpickr/dist/flatpickr.css";
 import "choices.js/public/assets/styles/choices.min.css";

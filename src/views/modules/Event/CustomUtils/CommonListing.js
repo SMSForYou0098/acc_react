@@ -1,19 +1,13 @@
 import React, { Fragment } from 'react'
-import MobBookingButton from './BookingUtils/MobBookingButton'
 import { useMyContext } from '../../../../Context/MyContextProvider'
 import { Card, Col, Row } from 'react-bootstrap';
 import CustomDataTable from '../CustomHooks/CustomDataTable';
 
 const CommonListing = (props) => {
     const { data,  loading, columns, setDateRange, bookingLink, tile, exportPermisson, ButtonLable,searchPlaceholder,ignoredColumnsProp } = props;
-    const { UserPermissions, isMobile } = useMyContext();
+    const { UserPermissions } = useMyContext();
     return (
         <Fragment>
-            {/* print model  */}
-
-            {isMobile &&
-                <MobBookingButton to={bookingLink} />
-            }
             {/* print model end */}
             <Row>
                 <Col sm="12">

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useSelector } from 'react-redux';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
-import loader from '../assets/event/stock/loader111.gif';
+import loader from '../assets/images/custom/loader111.gif';
 import currencyData from '../JSON/currency.json';
 
 

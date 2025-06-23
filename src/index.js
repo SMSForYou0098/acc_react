@@ -7,9 +7,7 @@ import { Provider } from "react-redux";
 import { IndexRouters } from "./router";
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
-// import Home from "./views/modules/Event/Home/Home";
 import DefaultLayout from "./views/modules/Event/layouts/default-layout";
-import { LandingModulesRouter } from "./views/modules/Event/CutomRoutes/landing-modules-router";
 import Signin from "./views/modules/Event/Auth/pages/sign-in";
 const router = createBrowserRouter(
   [
@@ -24,7 +22,6 @@ const router = createBrowserRouter(
       ]
     },
     ...IndexRouters,
-    ...LandingModulesRouter
   ],
   { basename: process.env.PUBLIC_URL }
 );

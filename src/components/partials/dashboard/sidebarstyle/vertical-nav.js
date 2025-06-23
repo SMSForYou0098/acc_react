@@ -83,12 +83,6 @@ const VerticalNav = memo(() => {
         },
       ],
     },
-
-
-
-
-
-
     // Scanner Accordion Menu
     {
       title: "Scan Ticket",
@@ -108,12 +102,6 @@ const VerticalNav = memo(() => {
           // permission: "Scan By Camera"
         },
       ],
-    },
-    {
-      title: "Payment Log",
-      path: "/dashboard/payment-log",
-      // permission: "View Payment Logs",
-      icon: <Code size={16} />,
     },
 
     // Roles Menu
