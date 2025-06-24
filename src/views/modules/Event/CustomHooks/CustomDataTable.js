@@ -121,7 +121,7 @@ const CustomDataTable = (props) => {
         try {
             // Prepare the data for export
             const ignoredColumns = ['Action', 'Actions', 'action', ...ignoredColumnsProp];
-            console.log( 'ignored columns:', ignoredColumns);
+            // console.log( 'ignored columns:', ignoredColumns);
             const exportData = filteredData?.map(row => {
                 const rowData = {};
                 columns.forEach(column => {

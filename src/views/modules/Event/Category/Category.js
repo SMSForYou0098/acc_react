@@ -10,6 +10,12 @@ const Category = () => {
             required: true
         },
         {
+            name: 'background_image',
+            label: 'Background Image',
+            type: 'file',
+            required: true
+        },
+        {
             name: 'description',
             label: 'Description',
             type: 'text',

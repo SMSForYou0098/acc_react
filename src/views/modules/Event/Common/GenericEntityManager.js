@@ -155,39 +155,77 @@ const GenericEntityManager = ({
     }, [formData, ErrorAlert, formFields]);
 
     const handleSubmit = useCallback(async () => {
-        try {
-            setModalState(prev => ({ ...prev, isLoading: true }));
+  try {
+    setModalState((prev) => ({ ...prev, isLoading: true }));
 
-            if (!validateForm()) {
-                setModalState(prev => ({ ...prev, isLoading: false }));
-                return;
-            }
+    if (!validateForm()) {
+      setModalState((prev) => ({ ...prev, isLoading: false }));
+      return;
+    }
 
-            let formPayload = { ...formData, userId: UserData.id, ...extraFormData }
-            
-            const apiUrl = modalState.editState
-                ? `${api}${apiEndpoint}-update/${modalState.editId}`
-                : `${api}${apiEndpoint}-store`;
+    // Merge and convert to FormData
+    const combinedPayload = {
+  ...formData,
+  userId: UserData.id,
+  ...extraFormData,
+};
 
-            const response = await axios.post(apiUrl, formPayload, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${authToken}`,
-                }
-            });
+// Remove any preview fields ending in 'PreviewName'
+const cleanedPayload = Object.entries(combinedPayload).reduce((acc, [key, value]) => {
+  if (!key.endsWith("PreviewName")) {
+    acc[key] = value;
+  }
+  return acc;
+}, {});
 
-            if (response.data.status) {
-                await fetchEntities();
-                handleClose();
-                successAlert(response.data?.message || `${entityName} ${modalState.editState ? 'updated' : 'created'} successfully`);
-            }
-        } catch (error) {
-            console.error(`Error submitting ${entityName.toLowerCase()}:`, error);
-            ErrorAlert(error.message || `Failed to save ${entityName.toLowerCase()}`);
-        } finally {
-            setModalState(prev => ({ ...prev, isLoading: false }));
-        }
-    }, [formData, modalState.editState, modalState.editId, api, apiEndpoint, authToken, fetchEntities, successAlert, ErrorAlert, validateForm, handleClose, UserData.id, entityName, extraFormData]);
+const formPayload = new FormData();
+Object.entries(cleanedPayload).forEach(([key, value]) => {
+  formPayload.append(key, value);
+});
+
+
+    const apiUrl = modalState.editState
+      ? `${api}${apiEndpoint}-update/${modalState.editId}`
+      : `${api}${apiEndpoint}-store`;
+
+    const response = await axios.post(apiUrl, formPayload, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.data.status) {
+      await fetchEntities();
+      handleClose();
+      successAlert(
+        response.data?.message ||
+          `${entityName} ${modalState.editState ? 'updated' : 'created'} successfully`
+      );
+    }
+  } catch (error) {
+    console.error(`Error submitting ${entityName.toLowerCase()}:`, error);
+    ErrorAlert(error.message || `Failed to save ${entityName.toLowerCase()}`);
+  } finally {
+    setModalState((prev) => ({ ...prev, isLoading: false }));
+  }
+}, [
+  formData,
+  modalState.editState,
+  modalState.editId,
+  api,
+  apiEndpoint,
+  authToken,
+  fetchEntities,
+  successAlert,
+  ErrorAlert,
+  validateForm,
+  handleClose,
+  UserData.id,
+  entityName,
+  extraFormData,
+]);
+
 
     const columns = useMemo(() => [
         {
@@ -252,11 +290,22 @@ const GenericEntityManager = ({
     }, []);
 
     const handleFormChange = useCallback((fieldName, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [fieldName]: value
-        }));
-    }, []);
+  if (value instanceof File) {
+    const previewUrl = URL.createObjectURL(value);
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value, // actual file
+      [`${fieldName}PreviewUrl`]: previewUrl, // for preview display
+    }));
+  } else {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+  }
+}, []);
+
+
 
     return (
         <Row>
@@ -272,36 +321,77 @@ const GenericEntityManager = ({
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form>
-                        <Row>
-                            {formFields.map((field, index) => (
-                                <Col lg="12" key={index}>
-                                    <Form.Group className="mb-3 form-group">
-                                        {field.type === 'checkbox' ? (
-                                            <Form.Check
-                                                type="switch"
-                                                id={`${field.name}-switch`}
-                                                label={field.label}
-                                                checked={formData[field.name] || false}
-                                                onChange={(e) => handleFormChange(field.name, e.target.checked)}
-                                            />
-                                        ) : (
-                                            <>
-                                                <Form.Label>{field.label}</Form.Label>
-                                                <Form.Control
-                                                    type={field.type || "text"}
-                                                    value={formData[field.name] || ''}
-                                                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                                                    onChange={(e) => handleFormChange(field.name, e.target.value)}
-                                                />
-                                            </>
-                                        )}
-                                    </Form.Group>
-                                </Col>
-                            ))}
-                        </Row>
-                    </Form>
-                </Modal.Body>
+  <Form>
+    <Row>
+      <Col lg={8}>
+        <Row>
+          {formFields.map((field, index) => (
+            <Col lg="12" key={index}>
+              <Form.Group className="mb-3 form-group">
+                {field.type === 'checkbox' ? (
+                  <Form.Check
+                    type="switch"
+                    id={`${field.name}-switch`}
+                    label={field.label}
+                    checked={formData[field.name] || false}
+                    onChange={(e) => handleFormChange(field.name, e.target.checked)}
+                  />
+                ) : field.type === 'file' ? (
+                  <>
+                    <Form.Label>{field.label}</Form.Label>
+                    <Form.Control
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFormChange(field.name, e.target.files[0])}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Form.Label>{field.label}</Form.Label>
+                    <Form.Control
+                      type={field.type || 'text'}
+                      value={formData[field.name] || ''}
+                      placeholder={`Enter ${field.label.toLowerCase()}`}
+                      onChange={(e) => handleFormChange(field.name, e.target.value)}
+                    />
+                  </>
+                )}
+              </Form.Group>
+            </Col>
+          ))}
+        </Row>
+      </Col>
+
+      {/* Right side preview */}
+      <Col lg={4} className="d-flex justify-content-center align-items-center">
+  {(() => {
+    const fileField = formFields.find((f) => f.type === 'file');
+    const previewUrl = formData[`${fileField?.name}PreviewUrl`];
+    const existingUrl = formData[fileField?.name];
+
+    if (previewUrl || typeof existingUrl === 'string') {
+      return (
+        <img
+          src={previewUrl || existingUrl}
+          alt="Preview"
+          style={{
+            maxHeight: '100%',
+            maxWidth: '100%',
+            objectFit: 'contain',
+            borderRadius: '8px',
+            border: '1px solid #dee2e6',
+          }}
+        />
+      );
+    }
+    return null;
+  })()}
+</Col>
+
+    </Row>
+  </Form>
+</Modal.Body>
+
                 <Modal.Footer>
                     <Button
                         variant="danger"

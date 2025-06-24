@@ -14,6 +14,8 @@ import RolePermission from "../views/modules/Event/RolePermission/RolePermission
 import Category from "../views/modules/Event/Category/Category";
 import WhatsAppConfig from "../views/modules/Event/AdminSetting/WhatsAppConfig";
 import CombinedView from "../views/modules/Event/CombinedView";
+import Scanner from "../views/modules/Event/Scanner/Scanner";
+import Camera from "../views/modules/Event/Scanner/Camera";
 
 
 
@@ -66,6 +68,25 @@ export const DefaultRouter = [
             name: 'User List',
             active: 'pages',
             subActive: 'User'
+          },
+          {
+            path: 'scan/',
+            // element: <Scanner />,
+            name: 'Scan',
+            children: [
+              {
+                path: "scanner",
+                element: <Scanner />,
+                name: 'Scanner',
+                subActive: 'scanner'
+              },
+              {
+                path: "camera",
+                element: <Camera />,
+                name: 'Camera',
+                subActive: 'camera'
+              },
+            ]
           },
           {
             path: "users/new",
@@ -135,7 +156,6 @@ export const DefaultRouter = [
                 subActive: 'social-media'
               },
             ]
-
           },
         ]
       },

@@ -4,7 +4,7 @@ import { Button, Col, Modal, Row, Badge } from "react-bootstrap";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { motion } from "framer-motion";
 const UserDetailModal = (props) => {
-  const { showModal, setShowModal, selectedUser, handleApproval,zones } = props;
+  const { showModal, setShowModal, selectedUser, handleApproval,zones,assignedZoneIds } = props;
   const { formatDateTime } = useMyContext();
 
   const InfoCol = (label, value, icon, grid = 6) => (
@@ -98,13 +98,13 @@ const UserDetailModal = (props) => {
                   )}
                   {InfoCol(
                     "Role",
-                    selectedUser.role_name,
+                    selectedUser?.role_name,
                     <Shield size={16} />,
                     4
                   )}
                   {InfoCol(
                     "Authentication",
-                    parseInt(selectedUser.authentication) === 1
+                    parseInt(selectedUser?.authentication) === 1
                       ? "Password"
                       : "OTP",
                     <Key size={16} />,
@@ -128,12 +128,12 @@ const UserDetailModal = (props) => {
                 <Row className="gy-3">
                   {InfoCol(
                     "Organisation",
-                    selectedUser.organisation || "N/A",
+                    selectedUser?.organisation?.name || "N/A",
                     <Building size={16} />
                   )}
                   {InfoCol(
                     "Company Name",
-                    selectedUser.comp_name || "N/A",
+                    selectedUser?.comp_name || "N/A",
                     <Briefcase size={16} />
                   )}
                   {InfoCol(
@@ -145,6 +145,8 @@ const UserDetailModal = (props) => {
               </Section>
 
               {/* Zone Selection */}
+              {
+                selectedUser?.role_name === 'User' && 
               <Section
                 title="Zone Selection"
                 color="info"
@@ -156,10 +158,8 @@ const UserDetailModal = (props) => {
                   </div>
                   <Row className="g-3">
                     {zones?.map((zone) => {
-                      const assignedZoneIds = selectedUser?.assignedZones || [
-                        1, 3, 5,
-                      ];
-                      const isAssigned = assignedZoneIds.includes(zone.id);
+                      
+                    const isAssigned = assignedZoneIds?.some(z => z.id === zone.id);
 
                       return (
                         <Col md={4} key={zone.id}>
@@ -181,6 +181,7 @@ const UserDetailModal = (props) => {
                   </Row>
                 </div>
               </Section>
+              }
 
               {/* Additional Info */}
               <Section
