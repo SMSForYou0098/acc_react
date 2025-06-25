@@ -52,33 +52,62 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       if (finalImage) {
         try {
           canvas.remove(loader);
-          const bgImg = await new Promise((resolve) => {
-            fabric.Image.fromURL(finalImage, (img) => {
-              if (!img) return;
+          const img = await loadBackgroundImage(finalImage);
+          const imgWidth = img?.width;
+          const imgHeight = img?.height;
 
-              const displayWidth = 400;
-              const scaleFactor = displayWidth / img.width;
-              const displayHeight = img.height * scaleFactor;
-
-              canvas.setDimensions({ width: displayWidth, height: displayHeight });
-              img.scaleX = scaleFactor;
-              img.scaleY = scaleFactor;
-              img.selectable = false;
-              img.evented = false;
-              resolve(img);
-            }, { crossOrigin: 'anonymous' });
+          canvas.setDimensions({ width: imgWidth, height: imgHeight });
+          img.scaleToWidth(imgWidth);
+          img.scaleToHeight(imgHeight);
+          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+            crossOrigin: 'anonymous',
           });
 
-          canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+          // Always show QR code
+          const qrCodeCanvas = qrCodeRef.current;
+          if (qrCodeCanvas) {
+            const qrCodeDataURL = qrCodeCanvas.toDataURL('image/png');
+            fabric.Image.fromURL(qrCodeDataURL, (qrImg) => {
+              const qrCodeWidth = 120;
+              const qrCodeHeight = 120;
+              const padding = 5;
+              const qrPositionX = 175;
+              const qrPositionY = 548;
 
+              const qrBackground = new fabric.Rect({
+                left: qrPositionX - padding,
+                top: qrPositionY - padding,
+                width: qrCodeWidth + padding * 2,
+                height: qrCodeHeight + padding * 2,
+                fill: 'white',
+                rx: 12, // rounded corners
+                ry: 12,
+                selectable: false,
+                evented: false,
+              });
+
+
+              qrImg.set({
+                left: qrPositionX,
+                top: qrPositionY,
+                selectable: false,
+                evented: false,
+                scaleX: qrCodeWidth / qrImg?.width,
+                scaleY: qrCodeHeight / qrImg?.height,
+              });
+
+              canvas.add(qrBackground, qrImg);
+              canvas.renderAll();
+            });
+          }
 
           // Load user photo if available
           const profileImage = userImage;
           if (profileImage) {
             const profileImageURL = profileImage;
-            const circleCenterX = 200;
-            const circleCenterY = 235;
-            const circleRadius = 70;
+            const circleCenterX = 235;
+            const circleCenterY = 280;
+            const circleRadius = 80;
 
             fabric.Image.fromURL(profileImageURL, (img) => {
               if (img) {
@@ -126,8 +155,8 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
             const fontSize = 26;
             const fontFamily = 'Arial';
             const valueLeft = 120; // <-- Adjust this to match where values should start
-            const startTop = 330;  // <-- Adjust this to match the first value's Y position
-            const verticalGap = 35; // <-- Adjust this to match the gap between lines
+            const startTop = 390;  // <-- Adjust this to match the first value's Y position
+            const verticalGap = 50; // <-- Adjust this to match the gap between lines
 
             values.forEach((value, i) => {
               const valueText = new fabric.Text(value, {
@@ -144,44 +173,6 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               canvas.add(valueText);
             });
             canvas.renderAll();
-          }
-
-          // Always show QR code
-          const qrCodeCanvas = qrCodeRef.current;
-          if (qrCodeCanvas) {
-            const qrCodeDataURL = qrCodeCanvas.toDataURL('image/png');
-            fabric.Image.fromURL(qrCodeDataURL, (qrImg) => {
-              const qrCodeWidth = 105;
-              const qrCodeHeight = 105;
-              const padding = 5;
-              const qrPositionX = 147;
-              const qrPositionY = 464;
-
-              const qrBackground = new fabric.Rect({
-                left: qrPositionX - padding,
-                top: qrPositionY - padding,
-                width: qrCodeWidth + padding * 2,
-                height: qrCodeHeight + padding * 2,
-                fill: 'white',
-                rx: 12, // rounded corners
-                ry: 12,
-                selectable: false,
-                evented: false,
-              });
-
-
-              qrImg.set({
-                left: qrPositionX,
-                top: qrPositionY,
-                selectable: false,
-                evented: false,
-                scaleX: qrCodeWidth / qrImg?.width,
-                scaleY: qrCodeHeight / qrImg?.height,
-              });
-
-              canvas.add(qrBackground, qrImg);
-              canvas.renderAll();
-            });
           }
           setCanvasReady(true);
         } catch (err) {

@@ -24,12 +24,13 @@ const Users = memo(() => {
     user: null,
     assignedZoneIds: [],
   });
+  const [bgRequired, setBgRequired] = useState(false);
   const [showIdModal, setShowIdModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
   const handleShowIdCardModal = (id) => {
     setSelectedId(id);
-    setShowIdModal(true);
+    showMultiAlert();
     const user = users.find(u => u.id === id);
       if (user) {
         setSelectedUser(user);
@@ -203,6 +204,31 @@ const Users = memo(() => {
       ErrorAlert(err.response?.data?.message || "Failed to load user details");
     }
   }, [users, api, authToken, ErrorAlert]);
+
+    const showMultiAlert = useCallback(() => {
+    Swal.fire({
+        title: 'Background Selection',
+        text: 'Please choose whether you want the ticket with or without a background.',
+        icon: 'question',
+        showCancelButton: false,
+        showDenyButton: true,
+        showCloseButton: true,
+        confirmButtonText: 'With Background',
+        denyButtonText: 'Without Background',
+        allowOutsideClick: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // User clicked "With Background"
+            setBgRequired(true);
+            setShowModal(true);
+        } else if (result.isDenied) {
+            // User clicked "Without Background"
+            setBgRequired(false);
+            setShowModal(true);
+        }
+    });
+}, [setBgRequired, setShowModal]);
+
 
 
   const columns = [
@@ -624,6 +650,7 @@ const Users = memo(() => {
       </Modal>
       <IdCardModal
         show={showIdModal}
+        bgRequired={bgRequired} 
         onHide={handleCloseIdCardModal}
         id={selectedId}
         idCardData={selectedUser}
