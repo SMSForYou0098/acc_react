@@ -275,7 +275,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
           onClick={downloadCanvas}
           disabled={!canvasReady || loading}
         >
-          {loading ? 'Please Wait...' : 'Download'}
+          {loading ? "Please Wait..." : "Download"}
           <ArrowBigDownDash size={18} />
         </Button>
         <Button
@@ -289,15 +289,24 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
         </Button>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", overflow: "auto" }}
+      >
         {finalImage && userData ? (
-          <canvas
-            ref={canvasRef}
+          <div
             style={{
-              border: '1px solid #ddd',
-              boxShadow: bgRequired ? '0 2px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.15)'
+              border: "1px solid #ddd",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              display: "inline-block", // Ensures proper sizing
             }}
-          />
+          >
+            <canvas
+              ref={canvasRef}
+              style={{
+                display: "block", // Removes default inline spacing
+              }}
+            />
+          </div>
         ) : (
           <div className="text-center py-5">
             <Spinner animation="border" role="status" />
@@ -305,7 +314,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
           </div>
         )}
       </div>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: "none" }}>
         <QRCodeCanvas ref={qrCodeRef} value={orderId} size={150} />
       </div>
     </>
