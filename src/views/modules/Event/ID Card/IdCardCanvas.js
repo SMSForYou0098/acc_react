@@ -8,113 +8,220 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
-
-  const WIDTH = 400;
-  const HEIGHT = 600;
+  const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
-    if (!finalImage || !userData) return;
+    if (finalImage) {
+      setImageUrl(finalImage);
+    }
+  }, [finalImage]);
 
-    const canvas = new fabric.Canvas(canvasRef.current, {
-      width: WIDTH,
-      height: HEIGHT
+  const loadBackgroundImage = (url) => {
+    return new Promise((resolve, reject) => {
+      fabric.Image.fromURL(url, (img) => {
+        if (img) {
+          resolve(img);
+        } else {
+          reject(new Error('Failed to load image'));
+        }
+      }, { crossOrigin: 'anonymous' });
     });
+  };
+
+  const addText = (text, options, canvas) => {
+    const textObj = new fabric.Text(text, {
+      fontSize: options.fontSize || 16,
+      fontFamily: options.fontFamily || 'Arial',
+      fill: options.fill || '#000',
+      ...options,
+      selectable: false,
+      evented: false
+    });
+    canvas.add(textObj);
+    return textObj;
+  };
+
+  const loadImage = (url, options = {}, canvas) => {
+    return new Promise((resolve, reject) => {
+      fabric.Image.fromURL(
+        url,
+        (img) => {
+          if (!img) {
+            reject(new Error('Failed to load image'));
+            return;
+          }
+          
+          if (options.width && options.height) {
+            const scaleX = options.width / img.width;
+            const scaleY = options.height / img.height;
+            img.scaleX = scaleX;
+            img.scaleY = scaleY;
+          }
+          
+          img.set({
+            left: options.left || 0,
+            top: options.top || 0,
+            selectable: false,
+            evented: false,
+            ...options
+          });
+          resolve(img);
+        },
+        { crossOrigin: 'anonymous' }
+      );
+    });
+  };
+
+  useEffect(() => {
+    if (!imageUrl || !userData) return;
+
+    const canvas = new fabric.Canvas(canvasRef.current);
     setCanvasReady(false);
 
-    const loadImage = (url, options = {}) => {
-      return new Promise((resolve, reject) => {
-        fabric.Image.fromURL(
-          url,
-          (img) => {
-            if (!img) {
-              reject(new Error('Failed to load image'));
-              return;
-            }
-            
-            // Apply scaling if width/height is provided
-            if (options.width && options.height) {
-              const scaleX = options.width / img.width;
-              const scaleY = options.height / img.height;
-              img.scaleX = scaleX;
-              img.scaleY = scaleY;
-            }
-            
-            img.set({
-              left: options.left || 0,
-              top: options.top || 0,
-              selectable: false,
-              evented: false,
-              ...options
-            });
-            resolve(img);
-          },
-          { crossOrigin: 'anonymous' }
-        );
-      });
-    };
-
-    const addText = (text, options) => {
-      const textObj = new fabric.Text(text, {
-        fontSize: options.fontSize || 16,
+    const showLoadingIndicator = (canvas) => {
+      const loaderText = new fabric.Text('Generating ID Card...', {
+        left: canvas.width / 2,
+        top: canvas.height / 2,
+        fontSize: 20,
+        fill: '#555',
         fontFamily: 'Arial',
-        fill: '#000',
-        ...options,
+        originX: 'center',
+        originY: 'center',
         selectable: false,
-        evented: false
+        evented: false,
       });
-      canvas.add(textObj);
-      return textObj;
+      canvas.add(loaderText);
+      canvas.renderAll();
+      return loaderText;
     };
 
-    const draw = async () => {
+    const drawCanvas = async () => {
+      const loader = showLoadingIndicator(canvas);
       try {
-        // Clear canvas first
-        canvas.clear();
-        
-        // Load background image
-        const bg = await loadImage(finalImage, { 
-          width: WIDTH, 
-          height: HEIGHT 
+        const bgImg = await loadBackgroundImage(imageUrl);
+        const imgWidth = bgImg.width;
+        const imgHeight = bgImg.height;
+
+        // Set canvas dimensions to match background image
+        canvas.setDimensions({ width: imgWidth, height: imgHeight });
+        bgImg.scaleToWidth(imgWidth);
+        bgImg.scaleToHeight(imgHeight);
+        canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas), {
+          crossOrigin: 'anonymous',
         });
-        canvas.setBackgroundImage(bg, canvas.renderAll.bind(canvas));
+
+        canvas.remove(loader);
 
         // Load user photo if available
         const photoUrl = userData.photo_id || userData.photo;
         if (photoUrl) {
           try {
+            const photoWidth = imgWidth * 0.3; // 30% of canvas width
+            const photoHeight = photoWidth * 1.2; // Maintain aspect ratio
             const photo = await loadImage(photoUrl, { 
-              left: 150, 
-              top: 80, 
-              width: 100, 
-              height: 120 
-            });
+              left: imgWidth / 2,
+              top: imgHeight * 0.2,
+              width: photoWidth,
+              height: photoHeight,
+              originX: 'center',
+              originY: 'center'
+            }, canvas);
             canvas.add(photo);
           } catch (err) {
             console.error('Failed to load user photo:', err);
             addText('Photo not available', { 
-              left: 150, 
-              top: 130, 
-              fontSize: 14 
-            });
+              left: imgWidth / 2,
+              top: imgHeight * 0.25,
+              fontSize: 14,
+              originX: 'center',
+              originY: 'center'
+            }, canvas);
           }
         }
 
-        // Add user details
-        addText(`Name: ${userData.name || '-'}`, { left: 50, top: 220, fontSize: 14 });
-        addText(`Email: ${userData.email || '-'}`, { left: 50, top: 250, fontSize: 14 });
-        addText(`Contact: ${userData.contact || userData.number || '-'}`, { left: 50, top: 280, fontSize: 14 });
-        addText(`Company: ${userData.user_company_name || '-'}`, { left: 50, top: 310, fontSize: 14 });
+        // Add user details (positioned relative to canvas size)
+        const labelLeft = imgWidth * 0.1;  // starting X position for labels
+const valueLeft = imgWidth * 0.35; // starting X for values
+const lineHeight = imgHeight * 0.05; // vertical spacing
+let currentTop = imgHeight * 0.35; // initial Y position
+
+// Name
+addText('Name:', {
+  left: labelLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+  fontWeight: 'bold',
+}, canvas);
+addText(userData.name || '-', {
+  left: valueLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+}, canvas);
+
+// Email
+currentTop += lineHeight;
+addText('Email:', {
+  left: labelLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+  fontWeight: 'bold',
+}, canvas);
+addText(userData.email || '-', {
+  left: valueLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+}, canvas);
+
+// Company
+currentTop += lineHeight;
+addText('Company:', {
+  left: labelLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+  fontWeight: 'bold',
+}, canvas);
+addText(userData.company_name || '-', {
+  left: valueLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+}, canvas);
+
+// Designation
+currentTop += lineHeight;
+addText('Designation:', {
+  left: labelLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+  fontWeight: 'bold',
+}, canvas);
+addText(userData.designation || '-', {
+  left: valueLeft,
+  top: currentTop,
+  fontSize: imgHeight * 0.035,
+  originX: 'left',
+}, canvas);
+
 
         // Add QR code if orderId is available
         if (orderId) {
           try {
             const qrDataURL = await QRCode.toDataURL(orderId);
+            const qrSize = imgWidth * 0.3; // 30% of canvas width
             const qrImg = await loadImage(qrDataURL, { 
-              left: 140, 
-              top: 360, 
-              width: 120, 
-              height: 120 
-            });
+              left: imgWidth / 1.87,
+              top: imgHeight * 0.78,
+              width: qrSize,
+              height: qrSize,
+              originX: 'center',
+              originY: 'center'
+            }, canvas);
             canvas.add(qrImg);
           } catch (err) {
             console.error('Failed to generate QR code:', err);
@@ -125,23 +232,25 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
         setCanvasReady(true);
       } catch (err) {
         console.error('Canvas draw error:', err);
-        // Add error message to canvas
+        canvas.remove(loader);
         addText('Error loading ID card', { 
-          left: 50, 
-          top: 50, 
-          fontSize: 18, 
-          fill: 'red' 
-        });
+          left: canvas.width / 2,
+          top: canvas.height / 2,
+          fontSize: 18,
+          fill: 'red',
+          originX: 'center',
+          originY: 'center'
+        }, canvas);
         canvas.renderAll();
       }
     };
 
-    draw();
+    drawCanvas();
     
     return () => {
       canvas.dispose();
     };
-  }, [finalImage, userData, orderId]);
+  }, [imageUrl, userData, orderId]);
 
   const downloadCanvas = () => {
     setLoading(true);
@@ -186,7 +295,6 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
       `);
       printWindow.document.close();
       
-      // Fallback in case onload doesn't work
       printWindow.onload = () => {
         printWindow.print();
       };
@@ -222,7 +330,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
-        {finalImage && userData ? (
+        {imageUrl && userData ? (
           <canvas 
             ref={canvasRef} 
             style={{ 
@@ -242,4 +350,3 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
 };
 
 export default IdCardCanvas;
-
