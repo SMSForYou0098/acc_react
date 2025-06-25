@@ -4,7 +4,7 @@ import { Modal } from 'react-bootstrap';
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import IdCardCanvas from './IdCardCanvas';
 
-const IdCardModal = ({ show, onHide, id, idCardData,bgRequired }) => {
+const IdCardModal = ({ show, onHide, id, idCardData, bgRequired }) => {
   const { api, authToken } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -77,7 +77,8 @@ const IdCardModal = ({ show, onHide, id, idCardData,bgRequired }) => {
       </Modal.Header>
       <Modal.Body className="text-center">
         <IdCardCanvas
-        loading={loading}
+          loading={loading}
+          bgRequired={bgRequired}
           finalImage={finalImage}
           userImage={userImage}
           orderId={orderId}

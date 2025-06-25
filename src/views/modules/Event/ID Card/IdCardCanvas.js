@@ -4,7 +4,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import { ArrowBigDownDash, Printer } from 'lucide-react';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
-const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true }) => {
+const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true,bgRequired }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -52,6 +52,8 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       if (finalImage) {
         try {
           canvas.remove(loader);
+          
+          // First, get dimensions from the background image
           const bgImg = await new Promise((resolve) => {
             fabric.Image.fromURL(finalImage, (img) => {
               if (!img) return;
@@ -61,15 +63,26 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               const displayHeight = img.height * scaleFactor;
 
               canvas.setDimensions({ width: displayWidth, height: displayHeight });
-              img.scaleX = scaleFactor;
-              img.scaleY = scaleFactor;
-              img.selectable = false;
-              img.evented = false;
-              resolve(img);
+              
+              if (bgRequired) {
+                img.scaleX = scaleFactor;
+                img.scaleY = scaleFactor;
+                img.selectable = false;
+                img.evented = false;
+                resolve(img);
+              } else {
+                // Set white background with same dimensions
+                canvas.backgroundColor = 'white';
+                resolve(null);
+              }
             }, { crossOrigin: 'anonymous' });
           });
 
-          canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+          if (bgRequired && bgImg) {
+            canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+          } else {
+            canvas.renderAll();
+          }
 
 
           // Load user photo if available
@@ -282,7 +295,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
             ref={canvasRef}
             style={{
               border: '1px solid #ddd',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              boxShadow: bgRequired ? '0 2px 4px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.15)'
             }}
           />
         ) : (

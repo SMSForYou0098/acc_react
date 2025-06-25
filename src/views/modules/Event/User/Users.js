@@ -220,14 +220,14 @@ const Users = memo(() => {
         if (result.isConfirmed) {
             // User clicked "With Background"
             setBgRequired(true);
-            setShowModal(true);
+            setShowIdModal(true);
         } else if (result.isDenied) {
             // User clicked "Without Background"
             setBgRequired(false);
-            setShowModal(true);
+            setShowIdModal(true);
         }
     });
-}, [setBgRequired, setShowModal]);
+}, [setBgRequired, setShowIdModal]);
 
 
 
