@@ -207,58 +207,63 @@ const Users = memo(() => {
 
   const columns = [
     {
-      dataField: 'id',
-      text: '#',
+      dataField: "id",
+      text: "#",
       formatter: (cell, row, rowIndex) => rowIndex + 1,
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'name',
-      text: 'Name',
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      dataField: "name",
+      text: "Name",
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'contact',
-      text: 'Contact',
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      dataField: "contact",
+      text: "Contact",
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'email',
-      text: 'Email',
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      dataField: "email",
+      text: "Email",
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'authentication',
-      text: 'Auth',
-      formatter: (cell) => parseInt(cell) === 1 ? "Password" : "OTP",
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      dataField: "authentication",
+      text: "Auth",
+      formatter: (cell) => (parseInt(cell) === 1 ? "Password" : "OTP"),
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'role_name',
-      text: 'Role',
+      dataField: "role_name",
+      text: "Role",
       formatter: (cell) => {
-        const badgeClass = {
-          'Admin': 'bg-info',
-          'Organizer': 'bg-primary',
-          'User': 'bg-warning',
-          'Agent': 'bg-danger',
-          'Support Executive': 'bg-success'
-        }[cell] || 'bg-secondary';
-        return <span className={`badge p-2 fw-normal ls-1 ${badgeClass} w-100`}>{cell}</span>;
+        const badgeClass =
+          {
+            Admin: "bg-info",
+            Organizer: "bg-primary",
+            User: "bg-warning",
+            Agent: "bg-danger",
+            "Support Executive": "bg-success",
+          }[cell] || "bg-secondary";
+        return (
+          <span className={`badge p-2 fw-normal ls-1 ${badgeClass} w-100`}>
+            {cell}
+          </span>
+        );
       },
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     // {
     //   dataField: 'organisation.name',
@@ -274,24 +279,26 @@ const Users = memo(() => {
       align: "center",
       sort: true,
       formatter: (cell, row) => {
-        return cell || row.organiser_company_name || row.user_company_name || "—";
+        return (
+          cell || row.organiser_company_name || row.user_company_name || "—"
+        );
       },
     },
     {
-      dataField: 'organiser_name',
-      text: 'Organiser',
-      headerAlign: 'center',
-      align: 'center',
+      dataField: "organiser_name",
+      text: "Organiser",
+      headerAlign: "center",
+      align: "center",
       sort: true,
       formatter: (cell, row) => {
         return cell || row.organiser_company_name || row.user_org_name || "—";
       },
     },
     {
-      dataField: 'approval_status',
-      text: 'Status',
+      dataField: "approval_status",
+      text: "Status",
       formatter: (cell, row) => {
-        if (row.role_name !== 'User') {
+        if (row.role_name !== "User") {
           return (
             <CustomTooltip text="Approved">
               <Button
@@ -304,21 +311,21 @@ const Users = memo(() => {
             </CustomTooltip>
           );
         }
-        let badgeClass = '';
-        let statusText = '';
+        let badgeClass = "";
+        let statusText = "";
         let statusIcon = null;
 
         if (cell === 0) {
-          badgeClass = 'warning';
-          statusText = 'Pending';
+          badgeClass = "warning";
+          statusText = "Pending";
           statusIcon = <Clock size={16} />;
         } else if (cell === 1) {
-          badgeClass = 'success';
-          statusText = 'Approved';
+          badgeClass = "success";
+          statusText = "Approved";
           statusIcon = <CheckCircle size={16} />;
         } else {
-          badgeClass = 'danger';
-          statusText = 'Rejected';
+          badgeClass = "danger";
+          statusText = "Rejected";
           statusIcon = <XCircle size={16} />;
         }
 
@@ -334,16 +341,17 @@ const Users = memo(() => {
           </CustomTooltip>
         );
       },
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'approval',
-      text: 'Approval Actions',
-      formatter: (cell, row) => {        // Only show approval buttons for pending users
+      dataField: "approval",
+      text: "Approval Actions",
+      formatter: (cell, row) => {
+        // Only show approval buttons for pending users
         if (row.approval_status === 0) {
-          if (row.role_name === 'User' && row.approval_status === 0) {
+          if (row.role_name === "User" && row.approval_status === 0) {
             return (
               <div className="d-flex gap-2 justify-content-center">
                 <CustomTooltip text="Approve User">
@@ -370,29 +378,29 @@ const Users = memo(() => {
         }
         return <span className="text-muted">No action needed</span>;
       },
-      headerAlign: 'center',
-      align: 'center'
+      headerAlign: "center",
+      align: "center",
     },
     {
-      dataField: 'zoneData',
-      text: 'Zones',
+      dataField: "zoneData",
+      text: "Zones",
       formatter: (cell, row) => {
         // If role is not User, show a custom text
-        if (row.role_name !== 'User') {
+        if (row.role_name !== "User") {
           return <span className="text-muted">No action needed</span>;
         }
-setAssignedZoneIds(cell);
-const assignedZoneIds = (cell || []).map(z => z.id);
+        setAssignedZoneIds(cell);
+        const assignedZoneIds = (cell || []).map((z) => z.id);
 
-// Sort: assigned zones first, then unassigned
-const sortedZones = [...zones].sort((a, b) => {
-  const aAssigned = assignedZoneIds.includes(a.id);
-  const bAssigned = assignedZoneIds.includes(b.id);
-  return aAssigned === bAssigned ? 0 : aAssigned ? -1 : 1;
-});
+        // Sort: assigned zones first, then unassigned
+        const sortedZones = [...zones].sort((a, b) => {
+          const aAssigned = assignedZoneIds.includes(a.id);
+          const bAssigned = assignedZoneIds.includes(b.id);
+          return aAssigned === bAssigned ? 0 : aAssigned ? -1 : 1;
+        });
 
-// Limit to first 5 zones to display
-const displayZones = sortedZones.slice(0, 5);
+        // Limit to first 5 zones to display
+        const displayZones = sortedZones.slice(0, 5);
 
         const remainingZones = zones.length > 5 ? zones.length - 5 : 0;
 
@@ -461,49 +469,48 @@ const displayZones = sortedZones.slice(0, 5);
           </div>
         );
       },
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
-      dataField: 'created_at',
-      text: 'Created At',
+      dataField: "created_at",
+      text: "Created At",
       formatter: (cell) => formatDateTime(cell),
-      headerAlign: 'center',
-      align: 'center',
-      sort: true
+      headerAlign: "center",
+      align: "center",
+      sort: true,
     },
     {
       dataField: "action",
       text: "Action",
       formatter: (cell, row) => {
-        const isDisabled = row?.is_deleted || row?.status === "1";
         const actions = [
           {
             tooltip: "Generate ID Card",
             onClick: () => handleShowIdCardModal(row.id),
             icon: <IdCard size={16} />,
             variant: "secondary",
-            isDisabled: row?.status !== 1
+            isDisabled: row?.status !== 1 || row.approval_status !== 1,
           },
           {
             tooltip: "Preview User",
             onClick: () => handlePreview(row.id),
             icon: <Eye size={16} />,
-            variant: "info"
+            variant: "info",
           },
           {
             tooltip: "Manage User",
             onClick: () => AssignCredit(row.id),
             icon: <Settings size={16} />,
-            variant: "primary"
+            variant: "primary",
           },
           {
             tooltip: "Delete User",
             onClick: () => HandleDelete(row.id),
             icon: <Trash2 size={16} />,
-            variant: "danger"
-          }
+            variant: "danger",
+          },
         ];
 
         return (
@@ -524,9 +531,8 @@ const displayZones = sortedZones.slice(0, 5);
         );
       },
       headerAlign: "center",
-      align: "center"
-    }
-
+      align: "center",
+    },
   ];
 
   return (

@@ -15,22 +15,36 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
   useEffect(() => {
     if (!finalImage || !userData) return;
 
-    const canvas = new fabric.Canvas(canvasRef.current);
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      width: WIDTH,
+      height: HEIGHT
+    });
     setCanvasReady(false);
 
     const loadImage = (url, options = {}) => {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         fabric.Image.fromURL(
           url,
           (img) => {
-            if (options.width && options.height) {
-              img.scaleToWidth(options.width);
-              img.scaleToHeight(options.height);
+            if (!img) {
+              reject(new Error('Failed to load image'));
+              return;
             }
+            
+            // Apply scaling if width/height is provided
+            if (options.width && options.height) {
+              const scaleX = options.width / img.width;
+              const scaleY = options.height / img.height;
+              img.scaleX = scaleX;
+              img.scaleY = scaleY;
+            }
+            
             img.set({
-              ...options,
+              left: options.left || 0,
+              top: options.top || 0,
               selectable: false,
-              evented: false
+              evented: false,
+              ...options
             });
             resolve(img);
           },
@@ -49,42 +63,84 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
         evented: false
       });
       canvas.add(textObj);
+      return textObj;
     };
 
     const draw = async () => {
       try {
-        canvas.setWidth(WIDTH);
-        canvas.setHeight(HEIGHT);
-
-        const bg = await loadImage(finalImage, { left: 0, top: 0, width: WIDTH, height: HEIGHT });
+        // Clear canvas first
+        canvas.clear();
+        
+        // Load background image
+        const bg = await loadImage(finalImage, { 
+          width: WIDTH, 
+          height: HEIGHT 
+        });
         canvas.setBackgroundImage(bg, canvas.renderAll.bind(canvas));
 
+        // Load user photo if available
         const photoUrl = userData.photo_id || userData.photo;
         if (photoUrl) {
-          const photo = await loadImage(photoUrl, { left: 150, top: 80, width: 100, height: 120 });
-          canvas.add(photo);
+          try {
+            const photo = await loadImage(photoUrl, { 
+              left: 150, 
+              top: 80, 
+              width: 100, 
+              height: 120 
+            });
+            canvas.add(photo);
+          } catch (err) {
+            console.error('Failed to load user photo:', err);
+            addText('Photo not available', { 
+              left: 150, 
+              top: 130, 
+              fontSize: 14 
+            });
+          }
         }
 
-        addText(userData.name || '-', { left: 50, top: 220, fontSize: 18, fontWeight: 'bold' });
+        // Add user details
+        addText(`Name: ${userData.name || '-'}`, { left: 50, top: 220, fontSize: 14 });
         addText(`Email: ${userData.email || '-'}`, { left: 50, top: 250, fontSize: 14 });
         addText(`Contact: ${userData.contact || userData.number || '-'}`, { left: 50, top: 280, fontSize: 14 });
         addText(`Company: ${userData.user_company_name || '-'}`, { left: 50, top: 310, fontSize: 14 });
 
+        // Add QR code if orderId is available
         if (orderId) {
-          const qrDataURL = await QRCode.toDataURL(orderId);
-          const qrImg = await loadImage(qrDataURL, { left: 140, top: 360, width: 120, height: 120 });
-          canvas.add(qrImg);
+          try {
+            const qrDataURL = await QRCode.toDataURL(orderId);
+            const qrImg = await loadImage(qrDataURL, { 
+              left: 140, 
+              top: 360, 
+              width: 120, 
+              height: 120 
+            });
+            canvas.add(qrImg);
+          } catch (err) {
+            console.error('Failed to generate QR code:', err);
+          }
         }
 
         canvas.renderAll();
         setCanvasReady(true);
       } catch (err) {
         console.error('Canvas draw error:', err);
+        // Add error message to canvas
+        addText('Error loading ID card', { 
+          left: 50, 
+          top: 50, 
+          fontSize: 18, 
+          fill: 'red' 
+        });
+        canvas.renderAll();
       }
     };
 
     draw();
-    return () => canvas.dispose();
+    
+    return () => {
+      canvas.dispose();
+    };
   }, [finalImage, userData, orderId]);
 
   const downloadCanvas = () => {
@@ -95,9 +151,12 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
       const link = document.createElement('a');
       link.href = dataURL;
       link.download = `id_card_${orderId || 'id'}.jpg`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (err) {
-      alert('Download failed');
+      console.error('Download failed:', err);
+      alert('Download failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -108,12 +167,32 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
     try {
       const canvasEl = canvasRef.current;
       const dataURL = canvasEl.toDataURL('image/png');
-      const win = window.open('', '', 'width=400,height=600');
-      win.document.write('<title>Print ID Card</title>');
-      win.document.write(`<img src="${dataURL}" onload="window.print();window.close()" />`);
-      win.document.close();
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print ID Card</title>
+            <style>
+              body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+              img { max-width: 100%; max-height: 100vh; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataURL}" onload="window.print();" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      // Fallback in case onload doesn't work
+      printWindow.onload = () => {
+        printWindow.print();
+      };
     } catch (err) {
-      alert('Print failed');
+      console.error('Print failed:', err);
+      alert('Print failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -144,7 +223,13 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
 
       <div style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
         {finalImage && userData ? (
-          <canvas ref={canvasRef} />
+          <canvas 
+            ref={canvasRef} 
+            style={{ 
+              border: '1px solid #ddd',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          />
         ) : (
           <div className="text-center py-5">
             <Spinner animation="border" role="status" />
@@ -157,3 +242,4 @@ const IdCardCanvas = ({ finalImage, orderId, userData }) => {
 };
 
 export default IdCardCanvas;
+

@@ -15,9 +15,9 @@ const IdCardModal = ({ show, onHide, id, idCardData }) => {
     if (!id) return;
 
     try {
-      const response = await axios.post(
+      const response = await axios.get(
         `${api}get-image/${id}`,
-        {},
+
         {
           headers: {
             Authorization: "Bearer " + authToken,
@@ -27,12 +27,12 @@ const IdCardModal = ({ show, onHide, id, idCardData }) => {
 
       const data = response.data;
       setImageData(data);
-      setOrderId(data.order_id);
+      setOrderId(data.token );
 
-      if (data.order_id && data.data?.background_image) {
+      if (data.token && data.data) {
         const retriveRes = await axios.post(
           `${api}get-image/retrive/data`,
-          { path: data.data.background_image },
+          { path: data.data },
           {
             responseType: 'blob',
             headers: {
@@ -50,7 +50,6 @@ const IdCardModal = ({ show, onHide, id, idCardData }) => {
       console.error('Error fetching image:', error);
     }
   };
-
   useEffect(() => {
     if (show && id) {
       getData();
