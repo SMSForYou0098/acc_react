@@ -223,7 +223,7 @@ const navigate = useNavigate();
         label: user.user_org || "",
       });
       setSelectedCompany({
-        value: user?.user_org_id || "",
+        value: user?.comp_id || "",
         label: user.user_comp || "",
       });
 
