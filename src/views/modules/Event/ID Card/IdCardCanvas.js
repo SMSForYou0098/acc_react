@@ -4,7 +4,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import { ArrowBigDownDash, Printer } from 'lucide-react';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
-const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true,bgRequired }) => {
+const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true, bgRequired }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -52,7 +52,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       if (finalImage) {
         try {
           canvas.remove(loader);
-          
+
           // First, get dimensions from the background image
           const bgImg = await new Promise((resolve) => {
             fabric.Image.fromURL(finalImage, (img) => {
@@ -63,7 +63,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               const displayHeight = img.height * scaleFactor;
 
               canvas.setDimensions({ width: displayWidth, height: displayHeight });
-              
+
               if (bgRequired) {
                 img.scaleX = scaleFactor;
                 img.scaleY = scaleFactor;
@@ -212,24 +212,128 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
     };
   }, [finalImage, userData, orderId]);
 
-  const downloadCanvas = () => {
+  const downloadCanvas = async () => {
     setLoading(true);
+
+    const RESOLUTION_MULTIPLIER = 3;
+    const BASE_WIDTH = 400;
+    const HD_WIDTH = BASE_WIDTH * RESOLUTION_MULTIPLIER;
+
     try {
-      const canvasEl = canvasRef.current;
-      const dataURL = canvasEl.toDataURL('image/jpeg', 0.9);
+      // 1. Create off-screen canvas
+      const hdCanvas = new fabric.Canvas(null, {
+        width: HD_WIDTH,
+        height: 600 * RESOLUTION_MULTIPLIER, // Approx height
+      });
+
+      // 2. Draw background
+      const bgImg = await new Promise((resolve) => {
+        fabric.Image.fromURL(finalImage, (img) => {
+          const scale = HD_WIDTH / img.width;
+          img.scaleX = scale;
+          img.scaleY = scale;
+          img.selectable = false;
+          img.evented = false;
+          resolve(img);
+        }, { crossOrigin: 'anonymous' });
+      });
+
+      if (bgRequired && bgImg) {
+        hdCanvas.setBackgroundImage(bgImg, hdCanvas.renderAll.bind(hdCanvas));
+      }
+
+      // 3. Add user image
+      if (userImage) {
+        const circleRadius = 70 * RESOLUTION_MULTIPLIER;
+        const centerX = 200 * RESOLUTION_MULTIPLIER;
+        const centerY = 235 * RESOLUTION_MULTIPLIER;
+
+        const userImg = await new Promise((resolve) => {
+          fabric.Image.fromURL(userImage, (img) => {
+            const scale = (circleRadius * 2.5 * 1.05) / Math.max(img.width, img.height);
+            img.set({
+              left: centerX,
+              top: centerY,
+              originX: 'center',
+              originY: 'center',
+              scaleX: scale,
+              scaleY: scale,
+              selectable: false,
+              evented: false,
+              clipPath: new fabric.Circle({
+                radius: circleRadius,
+                originX: 'center',
+                originY: 'center',
+                left: centerX,
+                top: centerY,
+                absolutePositioned: true,
+              }),
+            });
+            resolve(img);
+          }, { crossOrigin: 'anonymous' });
+        });
+
+        hdCanvas.add(userImg);
+      }
+
+      // 4. Add text
+      const values = [
+        capitalize(userData?.name) || 'User Name',
+        capitalize(userData?.designation) || 'Designation',
+        capitalize(userData?.company_name) || 'Company',
+      ];
+      values.forEach((text, i) => {
+        hdCanvas.add(new fabric.Text(text, {
+          left: 120 * RESOLUTION_MULTIPLIER,
+          top: (330 + i * 35) * RESOLUTION_MULTIPLIER,
+          fontSize: 26 * RESOLUTION_MULTIPLIER,
+          fontFamily: 'Arial',
+          fill: '#076066',
+          fontWeight: 'bold',
+          selectable: false,
+          evented: false,
+          originX: 'left',
+        }));
+      });
+
+      // 5. Add QR
+      const qrDataURL = qrCodeRef.current.toDataURL('image/png');
+      const qrImg = await new Promise((resolve) => {
+        fabric.Image.fromURL(qrDataURL, (img) => {
+          img.set({
+            left: 147 * RESOLUTION_MULTIPLIER,
+            top: 464 * RESOLUTION_MULTIPLIER,
+            scaleX: (105 * RESOLUTION_MULTIPLIER) / img.width,
+            scaleY: (105 * RESOLUTION_MULTIPLIER) / img.height,
+            selectable: false,
+            evented: false,
+          });
+          resolve(img);
+        });
+      });
+      hdCanvas.add(qrImg);
+
+      hdCanvas.renderAll();
+
+      // 6. Export
+      const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
+
       const link = document.createElement('a');
       link.href = dataURL;
-      link.download = `id_card_${orderId || 'id'}.jpg`;
+      link.download = `id_card_${orderId || 'id'}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      hdCanvas.dispose(); // clean up memory
     } catch (err) {
-      console.error('Download failed:', err);
-      alert('Download failed. Please try again.');
+      console.error('HD download failed:', err);
+      alert('HD Download failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const printCanvas = () => {
     setLoading(true);
@@ -268,7 +372,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
 
   return (
     <>
-      <div className="d-flex gap-2 mb-3">
+      <div className="d-flex gap-2 mb-3 w-50 justify-content-center">
         <Button
           variant="primary"
           className="flex-grow-1 d-flex align-items-center justify-content-center gap-2"
@@ -315,7 +419,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
         )}
       </div>
       <div style={{ display: "none" }}>
-        <QRCodeCanvas ref={qrCodeRef} value={orderId} size={150} />
+        <QRCodeCanvas ref={qrCodeRef} value={orderId} size={150 * 3} />
       </div>
     </>
   );

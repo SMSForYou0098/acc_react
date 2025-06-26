@@ -1,7 +1,6 @@
 import React from "react";
 import Default from "../layouts/dashboard/default";
 import Users from "../views/modules/Event/User/Users";
-import ManageUser from "../views/modules/Event/User/ManageUser";
 import MailSetting from "../views/modules/Event/AdminSetting/MailSetting";
 import PaymentGateway from "../views/modules/Event/AdminSetting/PaymentGateway/PaymentGateway";
 import SmsSetting from "../views/modules/Event/AdminSetting/SmsSetting";
@@ -11,7 +10,6 @@ import HomeSetting from "../views/modules/Event/AdminSetting/HomeSetting";
 
 import Roles from "../views/modules/Event/RolePermission/Roles";
 import RolePermission from "../views/modules/Event/RolePermission/RolePermission";
-import Category from "../views/modules/Event/Category/Category";
 import WhatsAppConfig from "../views/modules/Event/AdminSetting/WhatsAppConfig";
 import CombinedView from "../views/modules/Event/CombinedView";
 import Scanner from "../views/modules/Event/Scanner/Scanner";
@@ -23,15 +21,7 @@ export const DefaultRouter = [
   {
     path: "/",
     element: <Default />,
-    // element: <Home />,
     children: [
-      //custom 
-      // {
-      //   path: "events/:id/process",
-      //   element: <NewChekout />,
-      //   name: 'process',
-      //   active: 'process'
-      // },
       {
         path: "dashboard/",
         name: 'home',
@@ -56,22 +46,50 @@ export const DefaultRouter = [
             ]
           },
           {
-            path: "users",
-            element: <Users />,
+            path: "users/",
             name: 'User List',
             active: 'pages',
-            subActive: 'User'
-          },
-          {
-            path: "users/manage/:id",
-            element: <NewUser />,
-            name: 'User List',
-            active: 'pages',
-            subActive: 'User'
+            subActive: 'User',
+            children: [
+              {
+                path: "",
+                element: <Users type={'user'}/>,
+                name: 'User List',
+                active: 'pages',
+                subActive: 'User'
+              },
+              {
+                path: "company",
+                element: <Users type={'company'} />,
+                name: 'Company List',
+                active: 'pages',
+                subActive: 'Company'
+              },
+              {
+                path: "organizers",
+                element: <Users type={'organizer'} />,
+                name: 'Organizer List',
+                active: 'pages',
+                subActive: 'Organizer'
+              },
+              {
+                path: "manage/:id",
+                element: <NewUser />,
+                name: 'Manage User',
+                active: 'pages',
+                subActive: 'User'
+              },
+              {
+                path: "new",
+                element: <NewUser />,
+                name: 'New User',
+                active: 'pages',
+                subActive: 'User'
+              }
+            ]
           },
           {
             path: 'scan/',
-            // element: <Scanner />,
             name: 'Scan',
             children: [
               {

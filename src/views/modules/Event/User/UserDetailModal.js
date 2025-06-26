@@ -1,22 +1,11 @@
 import React, { useMemo } from "react";
-import {CheckCircle,Clock,User,XCircle,Check,X,MapPin,Mail,Phone,Shield,Key,Building,Briefcase,Users,Calendar,RefreshCw,Info} from "lucide-react";
+import { CheckCircle, Clock, User, XCircle, Check, X, MapPin, Mail, Phone, Shield, Key, Building, Briefcase, Users, Calendar, RefreshCw, Info } from "lucide-react";
 import { Button, Col, Modal, Row, Badge } from "react-bootstrap";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { motion } from "framer-motion";
-const UserDetailModal = (props) => {
-  const { showModal, setShowModal, selectedUser, handleApproval,zones,assignedZoneIds } = props;
-  const { formatDateTime } = useMyContext();
+import ZonesPreview from "./ZonesPreview";
 
-  const InfoCol = (label, value, icon, grid = 6) => (
-    <Col md={grid}>
-      <div className="small mb-1 d-flex align-items-center gap-2">
-        {icon} {label}:
-      </div>
-      <div className="fw-semibold text-dark fs-6">{value}</div>
-    </Col>
-  );
-
-  const Section = ({ title, color, icon, children }) => (
+  export const Section = ({ title, color, icon, children }) => (
     <div className="mb-4 shadow-sm rounded-4 overflow-hidden">
       <div
         className={`bg-${color} text-white px-3 py-2 d-flex align-items-center`}
@@ -29,6 +18,20 @@ const UserDetailModal = (props) => {
       </div>
     </div>
   );
+
+const UserDetailModal = (props) => {
+  const { showModal, setShowModal, selectedUser, handleApproval, zones, assignedZoneIds } = props;
+  const { formatDateTime } = useMyContext();
+
+  const InfoCol = (label, value, icon, grid = 6) => (
+    <Col md={grid}>
+      <div className="small mb-1 d-flex align-items-center gap-2">
+        {icon} {label}:
+      </div>
+      <div className="fw-semibold text-dark fs-6">{value}</div>
+    </Col>
+  );
+
 
   const renderStatusBadge = (status) => {
     const statusMap = {
@@ -145,42 +148,8 @@ const UserDetailModal = (props) => {
               </Section>
 
               {/* Zone Selection */}
-              {
-                selectedUser?.role_name === 'User' && 
-              <Section
-                title="Zone Selection"
-                color="info"
-                icon={<MapPin size={18} />}
-              >
-                <div className="mb-3">
-                  <div className="small mb-2 fw-semibold d-flex align-items-center gap-2">
-                    <MapPin size={16} /> Assigned Zones:
-                  </div>
-                  <Row className="g-3">
-                    {zones?.map((zone) => {
-                      
-                    const isAssigned = assignedZoneIds?.some(z => z.id === zone.id);
-
-                      return (
-                        <Col md={4} key={zone.id}>
-                          <Badge
-                            bg={isAssigned ? "success" : "light"}
-                            text={isAssigned ? "white" : "dark"}
-                            className="w-100 px-3 py-2 d-flex align-items-center justify-content-start gap-2 fs-6 shadow-sm"
-                          >
-                            {isAssigned ? (
-                              <Check size={14} />
-                            ) : (
-                              <X size={14} opacity={0.6} />
-                            )}
-                            <MapPin size={14} /> {zone.title}
-                          </Badge>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                </div>
-              </Section>
+              {selectedUser?.role_name === 'Company' &&
+                <ZonesPreview zones={zones} assignedZoneIds={assignedZoneIds} />
               }
 
               {/* Additional Info */}

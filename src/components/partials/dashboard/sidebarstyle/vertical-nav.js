@@ -1,9 +1,8 @@
 import React, { useState, useContext, memo, Fragment } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Accordion, useAccordionButton, AccordionContext, Tooltip, OverlayTrigger, } from "react-bootstrap";
-import { ArtistIcon, BookingsIcon, DashboardIcon, EventIcon, FooterIcon, HomeIcon, NavMenuIcon, OTPLockIcon, PagesIcon, PaymentWalletIcon, PromoIcon, ReportIcon, RoleIcon, ScanIcon, SettingIcon, SmsIcon, SocialMediaIcon, TaxesIcon, UsersIcon, MailIcon } from "./NavIcons";
+import { DashboardIcon, EventIcon, RoleIcon, ScanIcon, SettingIcon, SmsIcon, SocialMediaIcon, UsersIcon, MailIcon } from "./NavIcons";
 import { FaWhatsapp } from "react-icons/fa";
-import { ArrowLeftRight, Castle, Code, FerrisWheel, School, Users, WalletIcon } from "lucide-react";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import SidebarMenu from "../../components/sidebar/sidebar-menu";
 
@@ -78,6 +77,18 @@ const VerticalNav = memo(() => {
         {
           title: "User List",
           path: "/dashboard/users",
+          // permission: "View User",
+          minititle: "UL",
+        },
+        {
+          title: "Company List",
+          path: "/dashboard/users/company",
+          // permission: "View User",
+          minititle: "UL",
+        },
+        {
+          title: "Organizer List",
+          path: "/dashboard/users/organizers",
           // permission: "View User",
           minititle: "UL",
         },

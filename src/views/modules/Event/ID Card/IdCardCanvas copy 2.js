@@ -4,7 +4,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import { ArrowBigDownDash, Printer } from 'lucide-react';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
-const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true }) => {
+const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true,bgRequired }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -52,62 +52,46 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       if (finalImage) {
         try {
           canvas.remove(loader);
-          const img = await loadBackgroundImage(finalImage);
-          const imgWidth = img?.width;
-          const imgHeight = img?.height;
+          
+          // First, get dimensions from the background image
+          const bgImg = await new Promise((resolve) => {
+            fabric.Image.fromURL(finalImage, (img) => {
+              if (!img) return;
 
-          canvas.setDimensions({ width: imgWidth, height: imgHeight });
-          img.scaleToWidth(imgWidth);
-          img.scaleToHeight(imgHeight);
-          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-            crossOrigin: 'anonymous',
+              const displayWidth = 400;
+              const scaleFactor = displayWidth / img.width;
+              const displayHeight = img.height * scaleFactor;
+
+              canvas.setDimensions({ width: displayWidth, height: displayHeight });
+              
+              if (bgRequired) {
+                img.scaleX = scaleFactor;
+                img.scaleY = scaleFactor;
+                img.selectable = false;
+                img.evented = false;
+                resolve(img);
+              } else {
+                // Set white background with same dimensions
+                canvas.backgroundColor = 'white';
+                resolve(null);
+              }
+            }, { crossOrigin: 'anonymous' });
           });
 
-          // Always show QR code
-          const qrCodeCanvas = qrCodeRef.current;
-          if (qrCodeCanvas) {
-            const qrCodeDataURL = qrCodeCanvas.toDataURL('image/png');
-            fabric.Image.fromURL(qrCodeDataURL, (qrImg) => {
-              const qrCodeWidth = 120;
-              const qrCodeHeight = 120;
-              const padding = 5;
-              const qrPositionX = 175;
-              const qrPositionY = 548;
-
-              const qrBackground = new fabric.Rect({
-                left: qrPositionX - padding,
-                top: qrPositionY - padding,
-                width: qrCodeWidth + padding * 2,
-                height: qrCodeHeight + padding * 2,
-                fill: 'white',
-                rx: 12, // rounded corners
-                ry: 12,
-                selectable: false,
-                evented: false,
-              });
-
-
-              qrImg.set({
-                left: qrPositionX,
-                top: qrPositionY,
-                selectable: false,
-                evented: false,
-                scaleX: qrCodeWidth / qrImg?.width,
-                scaleY: qrCodeHeight / qrImg?.height,
-              });
-
-              canvas.add(qrBackground, qrImg);
-              canvas.renderAll();
-            });
+          if (bgRequired && bgImg) {
+            canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
+          } else {
+            canvas.renderAll();
           }
+
 
           // Load user photo if available
           const profileImage = userImage;
           if (profileImage) {
             const profileImageURL = profileImage;
-            const circleCenterX = 235;
-            const circleCenterY = 280;
-            const circleRadius = 80;
+            const circleCenterX = 200;
+            const circleCenterY = 235;
+            const circleRadius = 70;
 
             fabric.Image.fromURL(profileImageURL, (img) => {
               if (img) {
@@ -155,8 +139,8 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
             const fontSize = 26;
             const fontFamily = 'Arial';
             const valueLeft = 120; // <-- Adjust this to match where values should start
-            const startTop = 390;  // <-- Adjust this to match the first value's Y position
-            const verticalGap = 50; // <-- Adjust this to match the gap between lines
+            const startTop = 330;  // <-- Adjust this to match the first value's Y position
+            const verticalGap = 35; // <-- Adjust this to match the gap between lines
 
             values.forEach((value, i) => {
               const valueText = new fabric.Text(value, {
@@ -173,6 +157,44 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               canvas.add(valueText);
             });
             canvas.renderAll();
+          }
+
+          // Always show QR code
+          const qrCodeCanvas = qrCodeRef.current;
+          if (qrCodeCanvas) {
+            const qrCodeDataURL = qrCodeCanvas.toDataURL('image/png');
+            fabric.Image.fromURL(qrCodeDataURL, (qrImg) => {
+              const qrCodeWidth = 105;
+              const qrCodeHeight = 105;
+              const padding = 5;
+              const qrPositionX = 147;
+              const qrPositionY = 464;
+
+              const qrBackground = new fabric.Rect({
+                left: qrPositionX - padding,
+                top: qrPositionY - padding,
+                width: qrCodeWidth + padding * 2,
+                height: qrCodeHeight + padding * 2,
+                fill: 'white',
+                rx: 12, // rounded corners
+                ry: 12,
+                selectable: false,
+                evented: false,
+              });
+
+
+              qrImg.set({
+                left: qrPositionX,
+                top: qrPositionY,
+                selectable: false,
+                evented: false,
+                scaleX: qrCodeWidth / qrImg?.width,
+                scaleY: qrCodeHeight / qrImg?.height,
+              });
+
+              canvas.add(qrBackground, qrImg);
+              canvas.renderAll();
+            });
           }
           setCanvasReady(true);
         } catch (err) {
@@ -194,10 +216,26 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
     setLoading(true);
     try {
       const canvasEl = canvasRef.current;
-      const dataURL = canvasEl.toDataURL('image/jpeg', 0.9);
+      
+      // Get the fabric canvas instance for higher quality export
+      const fabricCanvas = canvasEl.fabric || canvasEl.__fabric;
+      
+      let dataURL;
+      if (fabricCanvas) {
+        // Use fabric's built-in export with higher quality
+        dataURL = fabricCanvas.toDataURL({
+          format: 'png', // PNG for lossless quality
+          quality: 1.0,  // Maximum quality
+          multiplier: 4  // 2x resolution for crisp output
+        });
+      } else {
+        // Fallback to native canvas with PNG
+        dataURL = canvasEl.toDataURL('image/png');
+      }
+      
       const link = document.createElement('a');
       link.href = dataURL;
-      link.download = `id_card_${orderId || 'id'}.jpg`;
+      link.download = `id_card_${orderId || 'id'}.png`; // Changed to PNG
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -246,14 +284,14 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
 
   return (
     <>
-      <div className="d-flex gap-2 mb-3">
+      <div className="d-flex gap-2 mb-3 w-50 justify-content-center">
         <Button
           variant="primary"
           className="flex-grow-1 d-flex align-items-center justify-content-center gap-2"
           onClick={downloadCanvas}
           disabled={!canvasReady || loading}
         >
-          {loading ? 'Please Wait...' : 'Download'}
+          {loading ? "Please Wait..." : "Download"}
           <ArrowBigDownDash size={18} />
         </Button>
         <Button
@@ -267,15 +305,24 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
         </Button>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", overflow: "auto" }}
+      >
         {finalImage && userData ? (
-          <canvas
-            ref={canvasRef}
+          <div
             style={{
-              border: '1px solid #ddd',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              border: "1px solid #ddd",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              display: "inline-block", // Ensures proper sizing
             }}
-          />
+          >
+            <canvas
+              ref={canvasRef}
+              style={{
+                display: "block", // Removes default inline spacing
+              }}
+            />
+          </div>
         ) : (
           <div className="text-center py-5">
             <Spinner animation="border" role="status" />
@@ -283,7 +330,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
           </div>
         )}
       </div>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: "none" }}>
         <QRCodeCanvas ref={qrCodeRef} value={orderId} size={150} />
       </div>
     </>
