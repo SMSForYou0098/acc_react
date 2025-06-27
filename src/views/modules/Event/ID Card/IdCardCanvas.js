@@ -7,24 +7,12 @@ import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true, bgRequired }) => {
+  const { api, authToken, ErrorAlert } = useMyContext();
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
-  const {api, authToken} = useMyContext();
-
-  const loadBackgroundImage = (url) => {
-    return new Promise((resolve, reject) => {
-      fabric.Image.fromURL(url, (img) => {
-        if (img) {
-          resolve(img);
-        } else {
-          reject(new Error('Failed to load image'));
-        }
-      }, { crossOrigin: 'anonymous' });
-    });
-  };
 
 
   useEffect(() => {
@@ -199,6 +187,55 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               canvas.renderAll();
             });
           }
+
+          // 7 square boxes
+          // ...existing code...
+          // 7 square boxes with border radius and check icons
+          const boxWidth = 28;
+          const boxHeight = 28;
+          const boxPadding = 8;
+          const numBoxes = 10;
+          const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
+          const boxStartX = (canvas.width - totalBoxesWidth) / 2; // Center horizontally
+          const boxStartY = 598;
+          const borderRadius = 8; // Add border radius
+          const checkedBoxes = [0, 2, 4]; // Indices of boxes that should have check icons
+
+          for (let i = 0; i < numBoxes; i++) {
+            const box = new fabric.Rect({
+              left: boxStartX + i * (boxWidth + boxPadding),
+              top: boxStartY,
+              width: boxWidth,
+              height: boxHeight,
+              fill: checkedBoxes.includes(i) ? '#076066' : '#f0f0f0', // Different colors for checked/unchecked
+              rx: borderRadius, // Add horizontal border radius
+              ry: borderRadius, // Add vertical border radius
+              stroke: '#076066', // Add border
+              strokeWidth: 2,
+              selectable: false,
+              evented: false,
+            });
+            canvas.add(box);
+
+            // Add check icon for selected boxes
+            if (checkedBoxes.includes(i)) {
+              const checkIcon = new fabric.Text('✓', {
+                left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
+                top: boxStartY + boxHeight / 2,
+                fontSize: 20,
+                fill: 'white',
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                evented: false,
+              });
+              canvas.add(checkIcon);
+            }
+          }
+          // ...existing code...
+
           setCanvasReady(true);
         } catch (err) {
           console.error('Canvas draw error:', err);
@@ -214,6 +251,35 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       canvas.dispose();
     };
   }, [finalImage, userData, orderId]);
+
+
+  // Add this new function to upload file to API in background
+  const uploadToAPIBackground = async (dataURL, filename) => {
+    try {
+      // Convert dataURL to blob
+      const response = await fetch(dataURL);
+      const blob = await response.blob();
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('card', blob, filename);
+      formData.append('user_id', userData?.id);
+
+      // Upload to API using axios
+      const apiResponse = await axios.post(`${api}user-card`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      return apiResponse.data;
+    } catch (error) {
+      return null;
+    }
+  };
+
+
 
   const downloadCanvas = async () => {
     setLoading(true);
@@ -328,6 +394,16 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       link.click();
       document.body.removeChild(link);
 
+      const filename = `id_card_${orderId || 'id'}.png`;
+      uploadToAPIBackground(dataURL, filename).then((result) => {
+        if (result) {
+          console.log('Background upload completed successfully');
+          // Optionally show a subtle notification
+          // toast.success('ID Card uploaded to server');
+        }
+      });
+
+
       hdCanvas.dispose(); // clean up memory
     } catch (err) {
       console.error('HD download failed:', err);
@@ -339,40 +415,30 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
 
 
   const printCanvas = async () => {
-  setLoading(true);
-  try {
-    const canvasEl = canvasRef.current;
-    if (!canvasEl) throw new Error("Canvas element not found");
-
-    const dataURL = canvasEl.toDataURL('image/png');
-
-    // Update card status via API
-    let response;
+    setLoading(true);
     try {
-      response = await axios.post(
-        `${api}card-status/${userData.id}`,
-        { card_status: 1 },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) throw new Error("Canvas element not found");
+
+      const dataURL = canvasEl.toDataURL('image/png');
+
+      try {
+        const response = await axios.get(`${api}card-status/${userData.id}/1 `,
+          { headers: { Authorization: `Bearer ${authToken}` } });
+
+        if (!response.data.status) {
+          ErrorAlert('Card status update failed. Printing will continue.');
         }
-      );
+      } catch (apiError) {
 
-      if (!response.data.status) {
-        console.error('API responded with failure status:', response.data);
-        alert('Card status update failed. Printing will continue.');
+        ErrorAlert('Failed to update card status. Printing will continue.');
       }
-    } catch (apiError) {
-      console.error('Error updating card status:', apiError);
-      alert('Failed to update card status. Printing will continue.');
-    }
 
-    // Open print window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) throw new Error('Popup blocked. Please allow popups.');
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) throw new Error('Popup blocked. Please allow popups.');
 
-    printWindow.document.write(`
+      printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -398,34 +464,32 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
         </body>
       </html>
     `);
-    printWindow.document.close();
+      printWindow.document.close();
 
-    // Trigger print once image loads
-    printWindow.onload = () => {
-      const img = printWindow.document.getElementById('printImage');
-      if (img.complete) {
-        printWindow.focus();
-        printWindow.print();
-      } else {
-        img.onload = () => {
+      // Trigger print once image loads
+      printWindow.onload = () => {
+        const img = printWindow.document.getElementById('printImage');
+        if (img.complete) {
           printWindow.focus();
           printWindow.print();
-        };
-        img.onerror = () => {
-          console.error('Image failed to load for printing');
-          alert('Failed to load image for printing.');
-        };
-      }
-    };
-  } catch (err) {
-    console.error('Print process failed:', err);
-    alert('Printing failed. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+        } else {
+          img.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+          };
+          img.onerror = () => {
+            console.error('Image failed to load for printing');
+            alert('Failed to load image for printing.');
+          };
+        }
+      };
+    } catch (err) {
+      console.error('Print process failed:', err);
+      alert('Printing failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
