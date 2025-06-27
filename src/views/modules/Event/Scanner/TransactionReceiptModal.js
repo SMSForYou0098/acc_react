@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { capitilize } from './Transactions';
 import { useReactToPrint } from 'react-to-print';
 import styled from 'styled-components';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import axios from 'axios';
+import { capitalize } from 'lodash';
 export const PrintWrapper = styled.div`
     @media print {
         margin: 0;
@@ -128,7 +128,7 @@ const TransactionReceiptModal = ({ show, onHide, transactionId }) => {
                             <div>
                                 <div className="mb-2">
                                     <strong className="me-2">Customer:</strong>
-                                    <span>{capitilize(transaction?.user_name)}</span>
+                                    <span>{capitalize(transaction?.user_name)}</span>
                                 </div>
                                 <div className="mb-2">
                                     <strong className="me-2">Amount:</strong>

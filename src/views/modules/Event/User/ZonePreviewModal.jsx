@@ -3,6 +3,7 @@ import { Button, Modal } from "react-bootstrap";
 import ZonesPreview from "./ZonesPreview";
 
 const ZonePreviewModal = ({zoneModal,zones,setZoneModal}) => {
+
   return (
     <Modal
       show={zoneModal.show}
@@ -10,7 +11,7 @@ const ZonePreviewModal = ({zoneModal,zones,setZoneModal}) => {
         setZoneModal({ show: false, user: null, assignedZoneIds: [] })
       }
       centered
-      size="md"
+      size="lg"
       className="zone-modal"
     >
       <Modal.Body className="py-4">

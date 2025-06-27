@@ -11,9 +11,8 @@ import MobileScan from './MobileScanButton';
 import ScanedUserData from './ScanedUserData';
 import TickeScanFeilds from './TickeScanFeilds';
 import AdminActionModal from './AdminActionModal';
-import ShopKeeperModal from './ShopKeeperModal';
-import { capitilize } from '../../Event/Scanner/Transactions';
 import TransactionReceiptModal from './TransactionReceiptModal';
+import { capitalize } from 'lodash';
 
 const TicketVerification = memo(({
     scanMode = 'manual',
@@ -228,11 +227,11 @@ const TicketVerification = memo(({
         }
 
         const values = {
-            name: capitilize(user_name),
+            name: capitalize(user_name),
             credits: credits,
             ctCredits: total_credits,
             shopName: shop_name,
-            shopKeeperName: capitilize(shop_user_name),
+            shopKeeperName: capitalize(shop_user_name),
             shopKeeperNumber: shop_user_number,
         };
 

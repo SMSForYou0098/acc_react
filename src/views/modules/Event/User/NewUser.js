@@ -9,16 +9,7 @@ import {  ArrowLeft, Pencil, Save, User2 } from "lucide-react";
 import FilePreview from "./FilePreview";
 import UserFormSkeleton from "./UserFormSkeleton";
 const NewUser = memo(() => {
-  const {
-    api,
-    successAlert,
-    userRole,
-    UserList,
-    UserData,
-    authToken,
-    ErrorAlert,
-    HandleBack,
-  } = useMyContext();
+  const {api,successAlert,userRole,UserData,authToken,ErrorAlert,HandleBack} = useMyContext();
   const location = useLocation();
 
   const {id}= useParams();
@@ -33,7 +24,7 @@ const NewUser = memo(() => {
     photo: "",
     designation:"",
   });
-
+  
   const [addressData, setAddressData] = useState({
     state: "",
     city: "",

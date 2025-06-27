@@ -132,7 +132,7 @@ const formatZones = (cell, row, zones, setZoneModal) => {
               setZoneModal({
                 show: true,
                 user: row,
-                assignedZoneIds,
+                assignedZoneIds : assignedZoneIds
               })
             }
           >

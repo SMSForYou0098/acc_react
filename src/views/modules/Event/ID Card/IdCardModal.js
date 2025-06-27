@@ -10,56 +10,38 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired }) => {
   const [orderId, setOrderId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [userImage, setUserImage] = useState(null);
-  const getData = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `${api}get-image/${id}`,
 
+
+  useEffect(() => {
+    if (show && id) {
+      setLoading(true);
+      setOrderId(idCardData?.order_id || null);
+      FetchImageBlob(idCardData?.photo, setUserImage);
+      FetchImageBlob(idCardData?.background_image, setFinalImage);
+    }
+  }, [show, id]);
+
+  const FetchImageBlob = async (imageUrl, setState) => {
+    try {
+      const res = await axios.post(
+        `${api}get-image/retrive/data`,
+        { path: imageUrl },
         {
+          responseType: 'blob',
           headers: {
             Authorization: "Bearer " + authToken,
           },
         }
       );
-
-      const data = response.data;
-      setOrderId(data.token);
-
-      if (data.token && data.data) {
-        FetchImageBlob(idCardData?.photo, setUserImage);
-        FetchImageBlob(data.data, setFinalImage);
-      }
-
+      const imageBlob = res.data;
+      const url = URL.createObjectURL(imageBlob);
+      setState(url);
     } catch (error) {
-      console.error('Error fetching image:', error);
+      console.error("Error fetching image:", error);
+      setState(null);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (show && id) {
-      getData();
-    }
-  }, [show, id]);
-
-  const FetchImageBlob = async (imageUrl, setState) => {
-    const retriveRes = await axios.post(
-      `${api}get-image/retrive/data`,
-      { path: imageUrl },
-      {
-        responseType: 'blob',
-        headers: {
-          Authorization: "Bearer " + authToken,
-        },
-      }
-    );
-
-    const imageBlob = retriveRes.data;
-    const url = URL.createObjectURL(imageBlob);
-    setState(url);
   }
 
   useEffect(() => {
