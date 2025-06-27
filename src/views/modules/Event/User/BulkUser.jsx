@@ -90,7 +90,7 @@ const BulkUser = ({ show, setShow, id, type }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${api}company-users/${id}`, {
+      const response = await axios.get(`${api}company-users/${id}/${type}`, {
         headers: {
           Authorization: "Bearer " + authToken,
         },
