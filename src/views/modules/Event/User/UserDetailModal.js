@@ -180,7 +180,7 @@ const UserDetailModal = (props) => {
                   <Row className="gy-3">
                     {InfoCol(
                       "Company Name",
-                      selectedUser?.company_name || "N/A",
+                      selectedUser?.company_name || selectedUser?.company?.company_name ||"N/A",
                       <Briefcase size={16} />
                     )}
                     {InfoCol(

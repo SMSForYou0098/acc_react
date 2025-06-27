@@ -196,6 +196,7 @@ const NewUser = memo(() => {
           companyLetter: user.company_letter || "",
           companyName: user.org_company_name || user.company_name || "",
         });
+        setEnablePasswordAuth(user.authentication === 1 ? true : false)
 
         //set zones
         const formattedZones = user?.zones?.map((zone) => ({
