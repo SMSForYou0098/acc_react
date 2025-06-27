@@ -18,7 +18,9 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
+  Clock,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import axios from "axios";
 import { capitalize } from "lodash";
@@ -67,6 +69,7 @@ const BulkUser = ({ show, setShow, id, type }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [approving, setApproving] = useState(false);
 
   const onHide = () => {
     setSearchTerm("");
@@ -76,9 +79,41 @@ const BulkUser = ({ show, setShow, id, type }) => {
     setError(null);
   };
 
-  const onApprove = () => {
-    console.log("Approved User IDs:", selectedUsers);
-    onHide();
+  const onApprove = async () => {
+    try {
+      setApproving(true);
+      const response = await axios.post(
+        `${api}bulk-approval`,
+        {
+          ids: selectedUsers,
+          status : 1, // Assuming 1 is for approval
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + authToken,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.status) {
+        console.log("Users approved successfully:", selectedUsers);
+        // Refresh the user list to show updated status
+        await getCompanyUsers();
+        // Clear selections
+        setSelectedUsers([]);
+        setSelectAll(false);
+        // Close modal only on success
+        onHide();
+      } else {
+        setError(response.data.message || "Failed to approve users");
+      }
+    } catch (error) {
+      console.error("Error approving users:", error);
+      setError("Error approving users. Please try again.");
+    } finally {
+      setApproving(false);
+    }
   };
 
   const onReject = () => {
@@ -120,9 +155,10 @@ const BulkUser = ({ show, setShow, id, type }) => {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      statusFilter === "" ||
-      (statusFilter === "approve" && user.approval_status === 1) ||
-      (statusFilter === "reject" && user.approval_status === 0);
+      statusFilter === "" || // Show all users when no status filter is selected
+      (statusFilter === "approve" && parseInt(user.approval_status) === 1) ||
+      (statusFilter === "reject" && parseInt(user.approval_status) === 2) ||
+      (statusFilter === "pending" && parseInt(user.approval_status) === 0);
 
     return matchesSearch && matchesStatus;
   });
@@ -164,7 +200,6 @@ const BulkUser = ({ show, setShow, id, type }) => {
       show={show}
       onHide={onHide}
       size="lg"
-      centered
       scrollable
     >
       <Modal.Header style={{ marginBottom: "1rem" }} closeButton>
@@ -195,11 +230,12 @@ const BulkUser = ({ show, setShow, id, type }) => {
               aria-label="Select Status"
             >
               <option value="">Select Status</option>
+              <option value="pending">Pending</option>
               <option value="approve">Approve</option>
               <option value="reject">Reject</option>
             </Form.Select>
           </Col>
-          {statusFilter && (
+          {statusFilter === "pending" && (
             <Col xs={12} md="auto" className="text-end">
               <Form.Check
                 type="checkbox"
@@ -247,89 +283,200 @@ const BulkUser = ({ show, setShow, id, type }) => {
             className="user-list-container"
             style={{ maxHeight: "400px", overflowY: "auto" }}
           >
-            {filteredUsers.map((user) => (
-              <div
-                key={user.id}
-                className={`border-bottom border-0 d-flex align-items-center p-3 bg-white rounded-3 transition-all ${
-                  selectedUsers.includes(user.id)
-                    ? "border-primary border-2"
-                    : "border"
-                }`}
-              >
-                {statusFilter && (
-                  <Form.Check
-                    type="checkbox"
-                    checked={selectedUsers.includes(user.id)}
-                    onChange={() => handleUserToggle(user.id)}
-                    className="me-3 mt-1"
-                    style={{ transform: "scale(1.2)" }}
-                  />
-                )}
-
-                <div className="position-relative me-3">
-                  <div
-                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
-                    style={{ width: 44, height: 44, fontSize: 20 }}
-                  >
-                    {user?.name?.[0]?.toUpperCase() || "U"}
-                  </div>
-                  {user.approval_status === 1 ? (
-                    <CheckCircle
-                      className="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 border text-success"
-                      size={16}
-                      style={{ right: -6, bottom: -6 }}
-                    />
-                  ) : (
-                    <AlertCircle
-                      className="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 border text-warning"
-                      size={16}
-                      style={{ right: -6, bottom: -6 }}
-                    />
-                  )}
-                </div>
-
-                <div className="flex-grow-1">
-                  <div className="d-flex align-items-center mb-1">
-                    <span className="fw-semibold me-2">
-                      {user?.name || "Unknown User"}
-                    </span>
-                    {type === "organizer" && user.role && (
-                      <Badge
-                        bg="light"
-                        text={user.role === "Company" ? "primary" : "warning"}
-                        className={`border small py-1 ${
-                          user.role === "Company"
-                            ? "border-primary"
-                            : "border-warning"
-                        }`}
+            <AnimatePresence>
+              {filteredUsers.map((user, index) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{
+                    duration: 0.3,
+                    delay: index * 0.05,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 15,
+                  }}
+                  layout
+                  className={`border-bottom border-0 d-flex align-items-center p-3 bg-white rounded-3 mb-2 ${
+                    selectedUsers.includes(user.id)
+                      ? "border-primary border-2"
+                      : "border"
+                  }`}
+                  style={{
+                    cursor: statusFilter ? "pointer" : "default",
+                    transition: "all 0.2s ease",
+                  }}
+                  whileTap={statusFilter ? { scale: 0.98 } : {}}
+                  onClick={
+                    statusFilter ? () => handleUserToggle(user.id) : undefined
+                  }
+                >
+                  {statusFilter === "pending" && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2, type: "spring" }}
+                      className="me-3 mt-1"
+                    >
+                      <motion.div
+                        animate={
+                          selectedUsers.includes(user.id)
+                            ? {
+                                scale: [1, 1.2, 1],
+                                rotate: [0, 5, -5, 0],
+                              }
+                            : {}
+                        }
+                        transition={{ duration: 0.3 }}
                       >
-                        {user.role}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="d-flex align-items-center mb-1 small text-truncate">
-                    <Mail className="text-muted me-2" size={14} />
-                    <span className="text-muted">
-                      {user?.email || "No email provided"}
-                    </span>
-                  </div>
-                  <div className="d-flex align-items-center small text-truncate">
-                    <Phone className="text-muted me-2" size={14} />
-                    <span className="text-muted">
-                      {user?.number || "No phone number"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="ms-auto">
-                  {parseInt(user.approval_status) === 1 ? (
-                    <Check size={20} className="text-success" />
-                  ) : (
-                    <X size={20} className="text-danger" />
+                        <Form.Check
+                          type="checkbox"
+                          checked={selectedUsers.includes(user.id)}
+                          onChange={() => handleUserToggle(user.id)}
+                          style={{ transform: "scale(1.2)" }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </motion.div>
+                    </motion.div>
                   )}
-                </div>
-              </div>
-            ))}
+
+                  <motion.div
+                    className="position-relative me-3"
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <motion.div
+                      className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold"
+                      style={{ width: 44, height: 44, fontSize: 20 }}
+                      animate={
+                        selectedUsers.includes(user.id)
+                          ? {
+                              backgroundColor: [
+                                "#0d6efd",
+                                "#198754",
+                                "#0d6efd",
+                              ],
+                            }
+                          : {}
+                      }
+                      transition={{
+                        duration: 0.5,
+                        repeat: selectedUsers.includes(user.id) ? Infinity : 0,
+                        repeatType: "reverse",
+                      }}
+                    >
+                      {user?.name?.[0]?.toUpperCase() || "U"}
+                    </motion.div>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.3, type: "spring" }}
+                    >
+                      {user.approval_status === 1 ? (
+                        <CheckCircle
+                          className="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 border text-success"
+                          size={16}
+                          style={{ right: -6, bottom: -6 }}
+                        />
+                      ) : (
+                        <AlertCircle
+                          className="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 border text-warning"
+                          size={16}
+                          style={{ right: -6, bottom: -6 }}
+                        />
+                      )}
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    className="flex-grow-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <div className="d-flex align-items-center mb-1">
+                      <motion.span
+                        className="fw-semibold me-2"
+                        transition={{ duration: 0.2 }}
+                      >
+                        {user?.name || "Unknown User"}
+                      </motion.span>
+                      {type === "organizer" && user.role && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.4, type: "spring" }}
+                        >
+                          <Badge
+                            bg="light"
+                            text={
+                              user.role === "Company" ? "primary" : "warning"
+                            }
+                            className={`border small py-1 ${
+                              user.role === "Company"
+                                ? "border-primary"
+                                : "border-warning"
+                            }`}
+                          >
+                            {user.role}
+                          </Badge>
+                        </motion.div>
+                      )}
+                    </div>
+                    <motion.div
+                      className="d-flex align-items-center mb-1 small text-truncate"
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <Mail className="text-muted me-2" size={14} />
+                      <span className="text-muted">
+                        {user?.email || "No email provided"}
+                      </span>
+                    </motion.div>
+                    <motion.div
+                      className="d-flex align-items-center small text-truncate"
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <Phone className="text-muted me-2" size={14} />
+                      <span className="text-muted">
+                        {user?.number || "No phone number"}
+                      </span>
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    className="ms-auto"
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {parseInt(user.approval_status) === 1 ? (
+                      <motion.div
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                      >
+                        <Check size={20} className="text-success" />
+                      </motion.div>
+                    ) : parseInt(user.approval_status) === 0 ? (
+                      <motion.div
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Clock size={20} className="text-warning" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      >
+                        <X size={20} className="text-danger" />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </Modal.Body>
@@ -338,24 +485,30 @@ const BulkUser = ({ show, setShow, id, type }) => {
         <Button variant="outline-secondary" onClick={onHide}>
           Cancel
         </Button>
-        {/* <div className="d-flex gap-2">
-          <Button
-            variant="outline-danger"
-            onClick={onReject}
-            disabled={selectedUsers.length === 0}
-            className="d-flex align-items-center px-4 rounded-pill"
-          >
-            <X className="me-1" /> Reject ({selectedUsers.length})
-          </Button>
+        {statusFilter === "pending" && selectedUsers.length > 0 && (
           <Button
             variant="primary"
             onClick={onApprove}
-            disabled={selectedUsers.length === 0}
-            className="d-flex align-items-center px-4 rounded-pill"
+            disabled={approving}
+            className="d-flex align-items-center px-4"
           >
-            <Check className="me-1" /> Approve ({selectedUsers.length})
+            {approving ? (
+              <>
+                <div
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                >
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                Approving...
+              </>
+            ) : (
+              <>
+                <Check className="me-1" /> Approve ({selectedUsers.length})
+              </>
+            )}
           </Button>
-        </div> */}
+        )}
       </Modal.Footer>
     </Modal>
   );
