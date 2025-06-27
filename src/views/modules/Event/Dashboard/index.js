@@ -1,675 +1,305 @@
 import React, { useState, useEffect, memo, Fragment } from "react";
-import { Row, Col, Card, } from "react-bootstrap";
+import { Row, Col, Card, Badge } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import Chart from "react-apexcharts";
 import { useSelector } from "react-redux";
 import Circularprogressbar from "../../../../components/circularprogressbar";
 import * as SettingSelector from "../../../../store/setting/selectors";
 import CountUp from "react-countup";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation } from "swiper";
-import axios from "axios";
+import { Autoplay, Navigation } from "swiper";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import ScannerDashBoard from "../Scanner/ScannerDashBoard";
-import MobBookingButton from "../CustomUtils/BookingUtils/MobBookingButton";
-import { ScanLine, Ticket, Users } from "lucide-react";
+import { ScanLine, Ticket, Users, Calendar, DollarSign, Activity, UserCheck, CreditCard } from "lucide-react";
 import { useMemo } from "react";
-import GraphAndCardsLayout from "./GraphAndCardsLayout";
-import { isNull } from "lodash";
+import ScannerDashBoard from "../Scanner/ScannerDashBoard";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/autoplay";
 
-const AgentCard = ({ title, value, today }) => (
-  <Col lg="4" md="6">
-    <Row>
-      <div className="col-12">
-        <Card className="card-block card-stretch card-height">
-          <Card.Body>
-            <div className="mb-2 d-flex justify-content-between align-items-center">
-              <span className="text-dark">{title}</span>
-              <Link className="badge rounded-pill bg-primary-subtle" to="#javascript:void(0);">
-                Total
-              </Link>
-            </div>
-            <h2 className="counter">₹
-              <CountUp start={0} end={value} duration={3} useEasing={true} separator="," />
-            </h2>
-            <small>Available to pay out.</small>
-          </Card.Body>
-        </Card>
-      </div>
-      <div className="col-12">
-        <Card className="card-block card-stretch card-height">
-          <Card.Body>
-            <div className="mb-2 d-flex justify-content-between align-items-center">
-              <span className="text-dark">Today {title.split(' ').pop()}</span>
-              <Link className="badge rounded-pill bg-primary-subtle" to="#javascript:void(0);">
-                Total
-              </Link>
-            </div>
-            <h2 className="counter">₹
-              <CountUp start={0} end={today} duration={3} useEasing={true} />
-            </h2>
-            <small>Transactions today</small>
-          </Card.Body>
-        </Card>
-      </div>
-    </Row>
-  </Col>
-);
-const SalesCard = ({ title, value, subtitle, link = 'Total', symbol }) => (
-  <Card className="card-block card-stretch card-height">
-    <Card.Body>
-      <div className="mb-2 d-flex justify-content-between align-items-center">
-        <span className="text-dark">{title}</span>
-        <Link className="badge rounded-pill bg-primary-subtle" to="#javascript:void(0);">
-          {link}
-        </Link>
-      </div>
-      <h2 className="counter">{symbol === 'user' ? <Users size={16} color="grey" className="me-2" /> : '₹'}<CountUp start={0} end={value} duration={3} useEasing separator="," /></h2>
-      {subtitle && <small>{subtitle}</small>}
-    </Card.Body>
-  </Card>
-);
+// Mock data generators
+const generateRandomData = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const generateTrendData = (count) => Array.from({ length: count }, (_, i) => generateRandomData(50, 200));
 
 const Index = memo(() => {
-  const { api, UserData, authToken, userRole, isMobile, UserPermissions } = useMyContext();
-  const navigate = useNavigate()
+  const { userRole } = useMyContext();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (userRole === 'User') {
-      navigate('/dashboard/bookings');
+  // Mock data for all roles
+  const mockData = {
+    admin: {
+      organizers: 12,
+      companies: 45,
+      users: 1243,
+      activeEvents: 23,
+      revenue: 45230,
+      trendData: generateTrendData(7),
+      recentActivities: [
+        { id: 1, action: 'New organizer registered', time: '2 mins ago' },
+        { id: 2, action: 'Company "ABC Corp" created event', time: '15 mins ago' },
+        { id: 3, action: 'System update completed', time: '1 hour ago' }
+      ]
+    },
+    organizer: {
+      companies: 5,
+      users: 342,
+      events: 8,
+      ticketsSold: 1245,
+      revenue: 23450,
+      trendData: generateTrendData(5),
+      upcomingEvents: [
+        { id: 1, name: 'Tech Conference', date: '2023-11-15', tickets: 342 },
+        { id: 2, name: 'Music Festival', date: '2023-12-05', tickets: 124 }
+      ]
+    },
+    company: {
+      users: 42,
+      events: 3,
+      attendanceRate: 78,
+      revenue: 8450,
+      trendData: generateTrendData(4)
+    },
+    scanner: {
+      scansToday: 124,
+      recentScans: [
+        { id: 1, ticket: 'TCKT-1245', event: 'Tech Conference', time: '10:24 AM' },
+        { id: 2, ticket: 'TCKT-1246', event: 'Tech Conference', time: '10:26 AM' }
+      ]
     }
-  }, [userRole]);
+  };
 
-  useSelector(SettingSelector.theme_color);
-
-  const getVariableColor = () => {
-    let prefix =
-      getComputedStyle(document.body).getPropertyValue("--prefix") || "bs-";
-    if (prefix) {
-      prefix = prefix.trim();
+  // Role-based data selection
+  const getRoleData = () => {
+    switch(userRole) {
+      case 'Admin': return mockData.admin;
+      case 'Organizer': return mockData.organizer;
+      case 'Company': return mockData.company;
+      case 'Scanner': return mockData.scanner;
+      default: return {};
     }
-    const color1 = getComputedStyle(document.body).getPropertyValue(
-      `--${prefix}primary`
-    );
-    const color2 = getComputedStyle(document.body).getPropertyValue(
-      `--${prefix}info`
-    );
-    const color3 = getComputedStyle(document.body).getPropertyValue(
-      `--${prefix}primary-tint-20`
-    );
-    const color4 = getComputedStyle(document.body).getPropertyValue(
-      `--${prefix}warning`
-    );
-    return {
-      primary: color1.trim(),
-      info: color2.trim(),
-      warning: color4.trim(),
-      primary_light: color3.trim(),
+  };
+
+  const roleData = getRoleData();
+
+  // Stats cards configuration
+  const getStatsCards = () => {
+    const cards = [];
+    const colors = {
+      primary: '#6362e7',
+      info: '#38b6ff',
+      success: '#4fd18b',
+      warning: '#ffb648'
     };
-  };
 
-  const variableColors = useMemo(() => getVariableColor(), []);
-  const colors = useMemo(() => [variableColors.primary, variableColors.info], [variableColors]);
-
-  const [counts, setCounts] = useState([{
-    offline: '',
-    online: '',
-    users: '',
-    agents: '',
-    pos: '',
-    organizer: '',
-    Scanner: ''
-  }]);
-  const [sale, setSale] = useState({
-    offline: '',
-    online: '',
-    agents: '',
-    pos: '',
-    agentsToday: '',
-    posToday: '',
-    organizer: '',
-    Scanner: '',
-    easebuzz: '',
-    instamojo: '',
-  });
-
-  const [cFees, setCFess] = useState({
-    offline: '',
-    online: '',
-    agents: '',
-    pos: '',
-    organizer: '',
-    Scanner: ''
-  });
-  const [weeklySales, setWeeklySales] = useState([]);
-  const [weeklyConvenienceFee, setWeeklyConvenienceFee] = useState([]);
-
-  const getCounts = async () => {
-    await axios.get(`${api}bookingCount/${UserData?.id}`, {
-      headers: {
-        'Authorization': 'Bearer ' + authToken,
-      }
-    }).then((res) => {
-      if (res.data.status) {
-        setCounts({
-          offline: res.data.offlineBookings,
-          online: res.data.onlineBookings,
-          users: res.data.userCount,
-          agents: res.data.agentCount,
-          pos: res.data.posCount,
-          organizer: res.data.organizerCount,
-          scanner: res.data.scannerCount
-        });
-      }
-    }).catch((err) => console.log(err));
-  };
-
-  const getSaleCounts = async () => {
-    await axios.get(`${api}calculateSale/${UserData?.id}`, {
-      headers: {
-        'Authorization': 'Bearer ' + authToken,
-      }
-    }).then((res) => {
-      if (res.data.status) {
-        let convenienceFee = res.data?.convenienceFee
-        let weeklySales = res.data?.salesDataNew
-        setWeeklySales(weeklySales)
-        setWeeklyConvenienceFee(convenienceFee)
-        setSale({
-          offline: res.data.offlineAmount,
-          agents: res.data.agentBooking,
-          agentsToday: res.data.agentToday,
-          // agent
-          bookings: { today: res.data.todayTotalBookings, total: res.data.totalBookings },
-          tickets: { today: res.data.agentsTodayTickets, total: res.data.totalTickets },
-          cash: { today: res.data.cashSales?.today, total: res.data.cashSales?.total },
-          upi: { today: res.data.upiSales?.today, total: res.data.upiSales?.total },
-          nb: { today: res.data.netBankingSales?.today, total: res.data.netBankingSales?.total },
-
-          //
-          online: res.data.onlineAmount,
-          pos: res.data.posAmount,
-          posToday: res.data.posTodayAmount,
-
-          //
-          instamojo: res.data.instamojoTotalAmount,
-          easebuzz: res.data.easebuzzTotalAmount,
-        });
-        setCFess({
-          offline: res.data.offlineCNC,
-          agents: res.data.agentCNC,
-          online: res.data.onlineCNC,
-          pos: res.data.posCNC,
-        });
-      }
-    }).catch((err) => console.log(err));
-  };
-
-  useEffect(() => {
-    getCounts()
-    getSaleCounts()
-  }, []);
-
-  const growth = [
-    {
-      color: variableColors.info,
-      value: 40,
-      id: "circle-progress-06",
-      svg: <Ticket size={20} />,
-      name: "Online Bookings",
-      start: 0,
-      end: counts?.online,
-      duration: 3,
-    },
-    {
-      color: variableColors.info,
-      value: 40,
-      id: "circle-progress-06",
-      svg: <Ticket size={20} />,
-      name: "Offline Bookings",
-      start: 0,
-      end: counts?.offline,
-      duration: 3,
-
-    },
-    {
-      color: variableColors.primary,
-      value: 91,
-      id: "circle-progress-01",
-      svg: <Users size={20} />,
-      name: "Total Users",
-      start: 0,
-      end: counts?.users,
-      duration: 3,
-
-    },
-    {
-      color: variableColors.info,
-      value: 80,
-      id: "circle-progress-02",
-      svg: <Users size={20} />,
-      name: "Agents",
-      start: 0,
-      end: counts?.agents,
-      duration: 3,
-    },
-    {
-      color: variableColors.primary,
-      value: 70,
-      id: "circle-progress-03",
-      svg: <Users size={20} />,
-      name: "POS Users",
-      start: 0,
-      end: counts?.pos,
-      duration: 3,
-    },
-    {
-      color: variableColors.info,
-      value: 60,
-      id: "circle-progress-04",
-      svg: <ScanLine size={20} />,
-      name: "Scanners",
-      start: 0,
-      end: counts?.scanner,
-      duration: 3,
-    },
-    {
-      color: variableColors.primary,
-      value: 50,
-      id: "circle-progress-05",
-      svg: <Users size={20} />,
-      name: "Organizer",
-      start: 0,
-      end: counts?.organizer,
-      duration: 3,
-    },
-  ];
-
-  const cardData = [
-    { title: "Online", value: sale?.online, note: null },
-    { title: "EaseBuzz", value: sale?.easebuzz, note: null },
-    { title: "Instamojo", value: sale?.instamojo, note: null },
-    { title: "PhonePe", value: 0, note: null },
-    { title: "Sponser Sales", value: 0, note: null },
-    { title: "Complimentary", value: sale?.online + sale?.offline + sale?.agents + sale?.pos, note: null },
-    { title: "Offline", value: sale?.offline, note: null },
-    { title: "Agent Sales", value: sale?.agents, note: null },
-    { title: "POS Sales", value: sale?.pos, note: null },
-    { title: "Organizer Sales", value: 0, note: null },
-    { title: "Sponser Sales", value: 0, note: null },
-    { title: "Total Sales", value: sale?.online + sale?.offline + sale?.agents + sale?.pos, note: null },
-  ];
-
-  const feeCards = [
-    { title: "Online C Fees", value: cFees?.online, note: null },
-    { title: "EaseBuzz C Fees", value: cFees?.online, note: null },
-    { title: "Instamojo C Fees", value: 0, note: null },
-    { title: "PhonePe C Fees", value: 0, note: null },
-    { title: "Offline C Fees", value: cFees?.offline, note: null },
-    { title: "Agent Sales C Fees", value: cFees?.agents, note: null },
-    { title: "POS Sales C Fees", value: cFees?.pos, note: null },
-    { title: "Organizer Sales C Fees", value: 0, note: null },
-  ];
-
-  const getLast7DaysWeekdays = () => {
-    const categories = ["S", "M", "T", "W", "T", "F", "S"];
-    const result = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const pastDate = new Date();
-      pastDate.setDate(today.getDate() - i);
-      const dayIndex = pastDate.getDay();
-      result.push(categories[dayIndex]);
+    if (userRole === 'Admin') {
+      cards.push(
+        { icon: <Users size={20} />, title: 'Organizers', value: roleData.organizers, color: colors.primary },
+        { icon: <UserCheck size={20} />, title: 'Companies', value: roleData.companies, color: colors.info },
+        { icon: <Users size={20} />, title: 'Users', value: roleData.users, color: colors.success },
+        { icon: <Calendar size={20} />, title: 'Active Events', value: roleData.activeEvents, color: colors.warning },
+        { icon: <DollarSign size={20} />, title: 'Revenue', value: roleData.revenue, prefix: '$', color: colors.primary }
+      );
+    } else if (userRole === 'Organizer') {
+      cards.push(
+        { icon: <UserCheck size={20} />, title: 'My Companies', value: roleData.companies, color: colors.primary },
+        { icon: <Users size={20} />, title: 'My Users', value: roleData.users, color: colors.info },
+        { icon: <Ticket size={20} />, title: 'Events', value: roleData.events, color: colors.success },
+        { icon: <CreditCard size={20} />, title: 'Tickets Sold', value: roleData.ticketsSold, color: colors.warning },
+        { icon: <DollarSign size={20} />, title: 'Revenue', value: roleData.revenue, prefix: '$', color: colors.primary }
+      );
+    } else if (userRole === 'Company') {
+      cards.push(
+        { icon: <Users size={20} />, title: 'My Users', value: roleData.users, color: colors.primary },
+        { icon: <Calendar size={20} />, title: 'My Events', value: roleData.events, color: colors.info },
+        { icon: <Activity size={20} />, title: 'Attendance Rate', value: roleData.attendanceRate, suffix: '%', color: colors.success },
+        { icon: <DollarSign size={20} />, title: 'Revenue', value: roleData.revenue, prefix: '$', color: colors.warning }
+      );
     }
 
-    return result;
-  };
-  const commonChartOptions = useMemo(() => ({
-    chart: {
-      stacked: true,
-      toolbar: { show: false },
-    },
-    plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: "28%",
-        endingShape: "rounded-4",
-        borderRadius: 3,
-      },
-    },
-    legend: { show: false },
-    dataLabels: { enabled: false },
-    stroke: {
-      show: true,
-      width: 3,
-      colors: ["transparent"],
-    },
-    grid: {
-      show: true,
-      strokeDashArray: 7,
-    },
-    xaxis: {
-      categories: getLast7DaysWeekdays(),
-      labels: {
-        minHeight: 20,
-        maxHeight: 20,
-        style: { colors: "#8A92A6" },
-      },
-    },
-    yaxis: {
-      title: { text: "" },
-      labels: {
-        minWidth: 20,
-        maxWidth: 100,
-        style: { colors: "#8A92A6" },
-      },
-    },
-    fill: { opacity: 1 },
-    tooltip: {
-      y: {
-        formatter: (val) => `₹${val}`,
-      },
-    },
-    responsive: [
-      {
-        breakpoint: 1025,
-        options: {
-          chart: { height: 130 },
-        },
-      },
-    ],
-  }), []);
-
-  const saleChart = {
-    options: {
-      ...commonChartOptions,
-      colors: colors,
-    },
-    series: [
-      {
-        name: "Online Sale",
-        data: weeklySales && weeklySales[0]?.data,
-      },
-      {
-        name: "Offline Sale",
-        data: weeklySales && weeklySales[1]?.data,
-      },
-    ],
+    return cards;
   };
 
-  const convenienceChart = {
-    options: {
-      ...commonChartOptions,
-      colors: colors,
-    },
-    series: [
-      {
-        name: "Online Sale",
-        data: weeklyConvenienceFee[0]?.data,
-      },
-      {
-        name: "Offline Sale",
-        data: weeklyConvenienceFee[1]?.data,
-      },
-    ],
-  };
-  const [liveUserCount, setLiveUserCount] = useState(0);
-
-  const getLiveUserCount = async (period) => {
-    try {
-      const response = await axios.get(`${api}user-devices/count`, {
-        headers: {
-          'Authorization': 'Bearer ' + authToken,
-        },
-        params: { period }
-      });
-      if (response.data.status) {
-        setLiveUserCount(response.data.data);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const liveUserCards = [
-    { title: 'Live Users', value: liveUserCount.live_users, link: 'Live' },
-    { title: 'Today Users', value: liveUserCount.today, link: 'Today' },
-    { title: 'Yesterday Users', value: liveUserCount.yesterday, link: 'Yesterday' },
-    { title: 'Last 2 Days', value: liveUserCount.last_2_days, link: '2 Days' },
-    { title: 'Last Week', value: liveUserCount.last_7_days, link: 'Week' },
-    { title: 'This Month', value: liveUserCount.this_month, link: 'Month' }
-  ];
-
-  const agentSalesCards = [
-    { title: 'Total Cash', value: sale?.cash?.total, today: sale?.cash?.today, type: 'cash' },
-    { title: 'Total UPI', value: sale?.upi?.total, today: sale?.upi?.today, type: 'upi' },
-    { title: 'Total Net Banking', value: sale?.nb?.total, today: sale?.nb?.today, type: 'nb' }
-  ];
-
-
-
-  useEffect(() => {
-    getLiveUserCount();
-  }, []);
-
-  const layoutSections = [
-    {
-      graphTitle: "Total Sales",
-      graphValue: sale?.online + sale?.offline,
-      chartOptions: saleChart.options,
-      chartSeries: saleChart.series,
-      cards1: cardData
-    },
-    {
-      graphTitle: "Total Convenience Fee",
-      graphValue: cFees?.online + cFees?.offline,
-      chartOptions: convenienceChart.options,
-      chartSeries: convenienceChart.series,
-      cards1: feeCards
-    }
-  ];
-
-  const POSLayout = {
-    graphTitle: "Total Sales",
-    graphValue: sale?.pos,
-    chartOptions: saleChart.options,
-    chartSeries: saleChart.series,
-    cards: [
-      {
-        title: "Total Sales",
-        value: sale?.pos,
-        note: isNull
-      },
-      {
-        title: "Today Total",
-        value: sale?.posToday,
-        note: isNull
-      }
-    ]
-  };
-
-  const AgentLayout = {
-    graphTitle: "Total Sales",
-    graphValue: sale?.agents,
-    chartOptions: saleChart.options,
-    chartSeries: saleChart.series,
-    cards1: [
-      {
-        title: "Total Sales",
-        value: sale?.agents,
-        note: null
-      },
-      {
-        title: "Today Total",
-        value: sale?.agentsToday,
-        note: null
-      }
-    ],
-    cards2: [
-      {
-        title: "Total Booking",
-        value: sale?.bookings?.total,
-        note: null
-      },
-      {
-        title: "Today Booking",
-        value: sale?.bookings?.total,
-        note: null
-      },
-      {
-        title: "Total Tickets",
-        value: sale?.tickets?.total,
-        note: null
-      },
-      {
-        title: "Today Tickets",
-        value: sale?.tickets?.today,
-        note: null
-      }
-    ]
-  };
+  const statsCards = getStatsCards();
 
   return (
     <Fragment>
-      {(isMobile && (userRole === 'Agent'  || userRole === 'POS')) &&
-        <MobBookingButton to={userRole === 'Agent' ? "/dashboard/agent-bookings/new" : "/dashboard/pos"} />
-      }
-      <Row>
-        {(userRole === 'Admin' || userRole === 'Organizer') &&
-          <>
-            <Col lg={12} md={12}>
-              <div className="overflow-hidden d-slider1">
-                <Swiper
-                  as="ul"
-                  className="p-0 m-0 swiper-wrapper list-inline"
-                  slidesPerView={3.5}
-                  spaceBetween={32}
-                  autoplay={true}
-                  modules={[Navigation]}
-                  navigation={{
-                    nextEl: ".swiper-button-next",
-                    prevEl: ".swiper-button-prev",
-                  }}
-                  breakpoints={{
-                    320: { slidesPerView: 2 },
-                    550: { slidesPerView: 2 },
-                    991: { slidesPerView: 3 },
-                    1400: { slidesPerView: 4 },
-                    1500: { slidesPerView: 6 },
-                    1920: { slidesPerView: 6 },
-                    2040: { slidesPerView: 7 },
-                    2440: { slidesPerView: 8 },
-                  }}
-                  data-aos="fade-up"
-                  data-aos-delay="700"
-                >
-                  {growth.map((item, index) => {
-                    return (
-
-                      <SwiperSlide className="card card-slide" key={index}
-                        breakpoints={{
-                          320: { slidesPerView: 1, spaceBetween: 10 }, // For small screens
-                          550: { slidesPerView: 2, spaceBetween: 15 }, // For slightly larger screens
-                          991: { slidesPerView: 3, spaceBetween: 20 }, // For tablets
-                          1400: { slidesPerView: 4, spaceBetween: 25 }, // For desktops
-                          1500: { slidesPerView: 6, spaceBetween: 30 }, // For larger desktops
-                          1920: { slidesPerView: 6, spaceBetween: 32 },
-                          2040: { slidesPerView: 7, spaceBetween: 32 },
-                          2440: { slidesPerView: 8, spaceBetween: 32 },
-                        }}
-                      >
-                        <Card.Body>
-                          <div className="progress-widget mb-2">
-                            <Circularprogressbar
-                              stroke={item.color}
-                              width="60px"
-                              height="60px"
-                              Linecap="rounded"
-                              trailstroke="#ddd"
-                              strokewidth="4px"
-                              style={{ width: 60, height: 60 }}
-                              value={item.value}
-                              id={item.id}
-                            >
-                              {item.svg}
-                            </Circularprogressbar>
-                            <div className="progress-detail">
-                              <p className="mb-2">{item.name}</p>
-                              <h4 className="counter">
-
-                                <CountUp
-                                  start={item.start}
-                                  end={item.end}
-                                  duration={item.duration}
-                                  separator=""
-                                  decimals={item.decimal}
-                                />
-                                {/* {item.suffix ? item.suffix : "K"} */}
-                              </h4>
-                            </div>
-                          </div>
-                        </Card.Body>
-                      </SwiperSlide>
-                    );
-                  })}
-                </Swiper>
-                <div className="swiper-button swiper-button-next"></div>
-                <div className="swiper-button swiper-button-prev"></div>
-              </div>
-            </Col>
-            {layoutSections?.map((section, index) => (
-              <>
-                <GraphAndCardsLayout
-                  key={index}
-                  {...section}
-                />
-
-              </>
-            ))}
-          </>
-        }
-        {userRole === 'POS' && (
-          <Row>
-            <GraphAndCardsLayout {...POSLayout} />
-          </Row>
-        )}
-        {(userRole === 'Agent' || userRole === 'Sponsor' || userRole === 'Accreditation') && (
-          <>
-            <Row>
-              <GraphAndCardsLayout {...AgentLayout} />
-            </Row>
-            <Col lg="12" md="6">
-              <Row>
-                {agentSalesCards.map((card, index) => (
-                  <AgentCard key={index} {...card} />
-                ))}
-              </Row>
-            </Col>
-          </>
-        )}
-        {
-          userRole === 'Scanner' &&
-          <ScannerDashBoard />
-        }
+      <Row className="mb-4">
+        <Col xs={12}>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h4 className="mb-0">
+              {userRole} Dashboard
+              <Badge bg="primary" className="ms-2">Live</Badge>
+            </h4>
+            <div className="d-flex">
+              <button 
+                className={`btn btn-sm ${activeTab === 'overview' ? 'btn-primary' : 'btn-outline-primary'} me-2`}
+                onClick={() => setActiveTab('overview')}
+              >
+                Overview
+              </button>
+              <button 
+                className={`btn btn-sm ${activeTab === 'analytics' ? 'btn-primary' : 'btn-outline-primary'}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                Analytics
+              </button>
+            </div>
+          </div>
+        </Col>
       </Row>
-      {UserPermissions?.includes('View Live Users') &&
-        <Row className="justify-content-end mb-4">
-          <Col lg="12">
-            <Row>
-              {liveUserCards.map((card, index) => (
-                <Col lg="2" md="4" sm="6" key={index}>
-                  <SalesCard
-                    title={card.title}
-                    value={card.value}
-                    link={card.link}
-                    symbol={'user'}
-                  />
-                </Col>
+
+      {(userRole === 'Admin' || userRole === 'Organizer' || userRole === 'Company') && (
+        <Row className="mb-4">
+          <Col xs={12}>
+            <Swiper
+              slidesPerView="auto"
+              spaceBetween={16}
+              modules={[Navigation]}
+              navigation={{
+                nextEl: ".swiper-button-next",
+                prevEl: ".swiper-button-prev",
+              }}
+              className="pb-3"
+              breakpoints={{
+                320: { slidesPerView: 1.2 },
+                576: { slidesPerView: 2.2 },
+                768: { slidesPerView: 3.2 },
+                992: { slidesPerView: 4.2 },
+                1200: { slidesPerView: 5.2 },
+              }}
+            >
+              {statsCards.map((card, index) => (
+                <SwiperSlide key={index} style={{ width: 'auto' }}>
+                  <Card className="h-100" style={{ minWidth: '200px' }}>
+                    <Card.Body className="d-flex align-items-center">
+                      <Circularprogressbar
+                        stroke={card.color}
+                        width="48px"
+                        height="48px"
+                        value={100}
+                        style={{ width: 48, height: 48, flexShrink: 0 }}
+                      >
+                        {card.icon}
+                      </Circularprogressbar>
+                      <div className="ms-3">
+                        <p className="mb-1 text-muted small">{card.title}</p>
+                        <h5 className="mb-0">
+                          {card.prefix || ''}
+                          <CountUp
+                            start={0}
+                            end={card.value}
+                            duration={2}
+                            separator=","
+                          />
+                          {card.suffix || ''}
+                        </h5>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </SwiperSlide>
               ))}
-            </Row>
+            </Swiper>
           </Col>
         </Row>
-      }
+      )}
+
+      {userRole === 'Admin' && activeTab === 'overview' && (
+        <Row>
+          <Col lg={8} className="mb-4">
+            <Card>
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">System Activity</h5>
+                  <select className="form-select form-select-sm w-auto">
+                    <option>Last 7 Days</option>
+                    <option>Last 30 Days</option>
+                    <option>Last 90 Days</option>
+                  </select>
+                </div>
+                <div style={{ height: '300px' }}>
+                  {/* In a real app, this would be a chart component */}
+                  <div className="d-flex align-items-end h-100">
+                    {roleData.trendData.map((value, i) => (
+                      <div 
+                        key={i} 
+                        className="flex-grow-1 bg-primary bg-opacity-10 mx-1 rounded-top" 
+                        style={{ 
+                          height: `${value / 2}px`,
+                          minWidth: '30px'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col lg={4} className="mb-4">
+            <Card>
+              <Card.Body>
+                <h5 className="mb-3">Recent Activities</h5>
+                <div className="activity-feed">
+                  {roleData.recentActivities.map(activity => (
+                    <div key={activity.id} className="feed-item mb-3">
+                      <div className="d-flex">
+                        <div className="bullet bg-primary"></div>
+                        <div className="ms-3">
+                          <p className="mb-1">{activity.action}</p>
+                          <small className="text-muted">{activity.time}</small>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {userRole === 'Organizer' && activeTab === 'overview' && (
+        <Row>
+          <Col lg={6} className="mb-4">
+            <Card>
+              <Card.Body>
+                <h5 className="mb-3">Upcoming Events</h5>
+                {roleData.upcomingEvents.map(event => (
+                  <div key={event.id} className="border-bottom pb-3 mb-3">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h6 className="mb-1">{event.name}</h6>
+                      <Badge bg="light" text="dark">{event.tickets} tickets</Badge>
+                    </div>
+                    <small className="text-muted">{new Date(event.date).toLocaleDateString()}</small>
+                  </div>
+                ))}
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col lg={6} className="mb-4">
+            <Card>
+              <Card.Body>
+                <h5 className="mb-3">Sales Trend</h5>
+                <div style={{ height: '250px' }}>
+                  <div className="d-flex align-items-end h-100">
+                    {roleData.trendData.map((value, i) => (
+                      <div 
+                        key={i} 
+                        className="flex-grow-1 bg-info bg-opacity-10 mx-1 rounded-top" 
+                        style={{ 
+                          height: `${value / 2}px`,
+                          minWidth: '20px'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {userRole === 'Scanner' && <ScannerDashBoard />}
     </Fragment>
   );
 });

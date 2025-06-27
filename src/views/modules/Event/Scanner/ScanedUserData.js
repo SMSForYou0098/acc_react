@@ -32,16 +32,16 @@ const ScanedUserData = (props) => {
       icon: <AtSign size={20} />,
       value: iDCardData?.company_user?.email || 'N/A',
     },
-    {
-      label: "Organizer Name",
-      icon: <User size={20} />,
-      value: iDCardData?.organizer_user?.name || 'N/A',
-    },
-    {
-      label: "Organizer Email",
-      icon: <AtSign size={20} />,
-      value: iDCardData?.organizer_user?.email || 'N/A',
-    },
+    // {
+    //   label: "Organizer Name",
+    //   icon: <User size={20} />,
+    //   value: iDCardData?.organizer_user?.name || 'N/A',
+    // },
+    // {
+    //   label: "Organizer Email",
+    //   icon: <AtSign size={20} />,
+    //   value: iDCardData?.organizer_user?.email || 'N/A',
+    // },
   ];
 
   return (

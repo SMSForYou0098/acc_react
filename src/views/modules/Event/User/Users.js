@@ -106,11 +106,12 @@ const Users = memo(({ type }) => {
   }, [fetchZones, GetUsers]);
 
   const AssignCredit = useCallback((id) => {
-    navigate(`manage/${id}`);
+    navigate(`/dashboard/users/manage/${id}`);
   }, [navigate]);
 
   const HandleBulkUser = useCallback((id) => {
     setShowBulkUserModal(true);
+    setSelectedId(id)
   }, [setShowBulkUserModal]);
 
   const HandleDelete = useCallback(async (id) => {
@@ -278,6 +279,7 @@ const Users = memo(({ type }) => {
         show={showBulkUserModal}
         setShow={setShowBulkUserModal}
         type={type}
+        id={selectedId}
       />
       <ZonePreviewModal
         zoneModal={zoneModal}

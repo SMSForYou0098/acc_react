@@ -52,24 +52,24 @@ const TickeScanFeilds = ({
             <Card>
                 <Card.Body className="d-flex justify-content-center flex-column">
                         <Row className="d-flex align-items-center mb-3">
-                            <Col md={6}>
+                            {/* <Col md={6}>
                                 <Form.Check
                                     type="switch"
                                     label="Auto Check"
                                     checked={autoCheck}
                                     onChange={(e) => setAutoCheck(e.target.checked)}
                                 />
-                            </Col>
+                            </Col> */}
                             {userRole === 'Admin' && (
                                 <Col md={6}>
                                     <Form.Group>
                                         <Form.Select
-                                            value={scanType}
+                                            value={'verify'}
                                             onChange={(e) => setScanType(e.target.value)}
                                         >
                                             <option value="">Select Type</option>
                                             <option value="verify">Verify Ticket</option>
-                                            <option value="shopkeeper">Shopkeeper Mode</option>
+                                            {/* <option value="shopkeeper">Shopkeeper Mode</option> */}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>

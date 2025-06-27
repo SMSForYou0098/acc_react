@@ -11,32 +11,23 @@ import MobileScan from './MobileScanButton';
 import ScanedUserData from './ScanedUserData';
 import TickeScanFeilds from './TickeScanFeilds';
 import AdminActionModal from './AdminActionModal';
-import TransactionReceiptModal from './TransactionReceiptModal';
-import { capitalize } from 'lodash';
 
 const TicketVerification = memo(({
     scanMode = 'manual',
 }) => {
-    const { api, userRole, formatDateTime, authToken, UserData, fetchCategoryData, isMobile, handleWhatsappAlert, ErrorAlert,successAlert } = useMyContext();
+    const { api, userRole, formatDateTime, authToken, UserData, isMobile, successAlert } = useMyContext();
     const [QRdata, setQRData] = useState('');
     const [type, setType] = useState('');
     const [show, setShow] = useState(false);
-    const [ticketData, setTicketData] = useState([]);
-    const [event, setEvent] = useState();
     const [iDCardData,setIdCardData] = useState({})
     const [autoCheck, setAutoCheck] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [showAttendeee, setShowAttendee] = useState(false);
-    const [attendees, setAttendees] = useState([]);
-    const [categoryData, setCategoryData] = useState(null);
     const [tokenLength, setTokenLength] = useState(8);
     const [play] = useSound(beepSound);
     const [error] = useSound(errorSound);
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [pendingQRData, setPendingQRData] = useState(null);
     const [selectedAction, setSelectedAction] = useState(null);
-    const [resData, setResData] = useState(null);
-    const [showReceipt, setShowReceipt] = useState(false);
     const [scanType, setScanType] = useState(''); 
     // Handle admin actions
     const handleAdminAction = async (actionType,data) => {
@@ -94,6 +85,7 @@ const TicketVerification = memo(({
                 play();
                 setIdCardData(res.data.data)
                 setShow(true);
+                setQRData(data)
             }
         } catch (err) {
             setQRData('');
@@ -140,7 +132,7 @@ const TicketVerification = memo(({
                 });
 
                 if (res.data.status) {
-                    successAlert('Ticket Scanned Successfully!');
+                    successAlert('ID Card Scanned Successfully!');
                     setQRData('');
                     setShow(false);
                 }
@@ -149,40 +141,6 @@ const TicketVerification = memo(({
             } finally {
                 setIsProcessing(false);
             }
-        }
-    };
-    const handleDebit = async (amount, remarks) => {
-        //console.log(amount, remarks);return
-        try {
-            setIsProcessing(true);
-            const res = await axios.post(
-                `${api}debit-wallet`,
-                {
-                    amount,
-                    description: remarks,
-                    token: QRdata,
-                    shopKeeper_id: UserData?.id,
-                    session_id: ticketData.session_id,
-                    user_id: ticketData.user?.id
-                },
-                { headers: { 'Authorization': 'Bearer ' + authToken } }
-            );
-
-            if (res.data.status) {
-                const transactionData = res.data?.data;
-                setShowReceipt(true);
-                setResData(transactionData);
-                setShow(false);
-                setQRData('');
-                successAlert('success','Amount Debited Successfully!');
-                HandleSendAlerts(transactionData).catch(err => {
-                    console.error('Failed to send alert:', err);
-                });
-            }
-        } catch (err) {
-            SweetalertError(err?.response?.data?.message);
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -205,58 +163,15 @@ const TicketVerification = memo(({
         }
     }, [show, autoCheck]);
 
-    const HandleSendAlerts = async (transactionData) => {
-        if (!transactionData) {
-            ErrorAlert('Transaction data is missing');
-            return;
-        }
-        const template = 'Transaction Dedit';
-        const {
-            total_credits = 0,
-            user_number = '',
-            shop_name = '',
-            user_name = '',
-            credits = 0,
-            shop_user_name = '',
-            shop_user_number = ''
-        } = transactionData;
-
-        if (!user_number) {
-            ErrorAlert('User phone number is missing in:', transactionData);
-            return;
-        }
-
-        const values = {
-            name: capitalize(user_name),
-            credits: credits,
-            ctCredits: total_credits,
-            shopName: shop_name,
-            shopKeeperName: capitalize(shop_user_name),
-            shopKeeperNumber: shop_user_number,
-        };
-
-        if (user_number && credits) {
-            await handleWhatsappAlert(user_number, values, template);
-        } else {
-            ErrorAlert('Missing required data for WhatsApp alert');
-        }
-    };
-
     return (
         <>
             <AdminActionModal
                 show={showAdminModal}
                 onHide={() => {
                     setShowAdminModal(false);
-                    setQRData('');
                     setPendingQRData(null);
                 }}
                 onActionSelect={handleAdminAction}
-            />
-            <TransactionReceiptModal
-                show={showReceipt}
-                onHide={() => setShowReceipt(false)}
-                transactionId={resData?.id}
             />
            
             {(userRole === 'Scanner' || selectedAction === 'verify') && (

@@ -4,12 +4,15 @@ import { Button, Spinner } from 'react-bootstrap';
 import { ArrowBigDownDash, Printer } from 'lucide-react';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
+import axios from 'axios';
+import { useMyContext } from '../../../../Context/MyContextProvider';
 const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = true, bgRequired }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
 
+  const {api, authToken} = useMyContext();
 
   const loadBackgroundImage = (url) => {
     return new Promise((resolve, reject) => {
@@ -335,40 +338,94 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
   };
 
 
-  const printCanvas = () => {
-    setLoading(true);
+  const printCanvas = async () => {
+  setLoading(true);
+  try {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) throw new Error("Canvas element not found");
+
+    const dataURL = canvasEl.toDataURL('image/png');
+
+    // Update card status via API
+    let response;
     try {
-      const canvasEl = canvasRef.current;
-      const dataURL = canvasEl.toDataURL('image/png');
+      response = await axios.post(
+        `${api}card-status/${userData.id}`,
+        { card_status: 1 },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
 
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Print ID Card</title>
-            <style>
-              body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-              img { max-width: 100%; max-height: 100vh; }
-            </style>
-          </head>
-          <body>
-            <img src="${dataURL}" onload="window.print();" />
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    } catch (err) {
-      console.error('Print failed:', err);
-      alert('Print failed. Please try again.');
-    } finally {
-      setLoading(false);
+      if (!response.data.status) {
+        console.error('API responded with failure status:', response.data);
+        alert('Card status update failed. Printing will continue.');
+      }
+    } catch (apiError) {
+      console.error('Error updating card status:', apiError);
+      alert('Failed to update card status. Printing will continue.');
     }
-  };
+
+    // Open print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) throw new Error('Popup blocked. Please allow popups.');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print ID Card</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              background: #fff;
+            }
+            img {
+              max-width: 100%;
+              max-height: 100vh;
+            }
+          </style>
+        </head>
+        <body>
+          <img id="printImage" src="${dataURL}" />
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    // Trigger print once image loads
+    printWindow.onload = () => {
+      const img = printWindow.document.getElementById('printImage');
+      if (img.complete) {
+        printWindow.focus();
+        printWindow.print();
+      } else {
+        img.onload = () => {
+          printWindow.focus();
+          printWindow.print();
+        };
+        img.onerror = () => {
+          console.error('Image failed to load for printing');
+          alert('Failed to load image for printing.');
+        };
+      }
+    };
+  } catch (err) {
+    console.error('Print process failed:', err);
+    alert('Printing failed. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <>
