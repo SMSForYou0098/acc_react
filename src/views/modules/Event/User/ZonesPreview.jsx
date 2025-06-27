@@ -25,7 +25,7 @@ const ZonesPreview = ({ zones, assignedZoneIds, name = "User" }) => {
                 <Badge
                   bg={isAssigned ? "success" : "light"}
                   text={isAssigned ? "white" : "dark"}
-                  className="w-100 px-3 py-2 d-flex align-items-center justify-content-start gap-2 shadow-sm"
+                  className="w-100 px-3 py-2 d-flex align-items-center justify-content-start fs-6 gap-2 shadow-sm"
                 >
                   {isAssigned ? <Check size={18} /> : <X size={14} />}
                   <MapPin size={14} /> {zone.title}

@@ -133,15 +133,6 @@ const Headerpro = memo((props) => {
                 </div>
               </Dropdown.Toggle>
               <Dropdown.Menu variant="end">
-                {/* <Dropdown.Item as="button">
-                  {UserData?.name}
-                </Dropdown.Item> */}
-                <Dropdown.Item
-                  as="button"
-                  onClick={() => history("/dashboard/bookings")}
-                >
-                  My Bookings
-                </Dropdown.Item>
                 <Dropdown.Item
                   as="button"
                   onClick={() => history(`/dashboard/users/manage/${UserData?.id}`)}

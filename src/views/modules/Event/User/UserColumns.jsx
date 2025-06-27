@@ -53,7 +53,7 @@ const formatApprovalStatus = (cell, row) => {
 };
 
 const formatApprovalActions = (cell, row, handleApproval) => {
-  if (row.role_name === "User" && row.approval_status === 0) {
+  if (row.role_name === "User" && parseInt(row.approval_status) === 0) {
     return (
       <div className="d-flex gap-2 justify-content-center">
         <CustomTooltip text="Approve User">
@@ -169,6 +169,13 @@ export const baseColumns = [
     formatter: formatRoleBadge,
     ...defaultColumnProps,
   },
+  {
+    dataField: "company_name",
+    text: "Company Name",
+    formatter: (cell, row) =>
+      cell || row.organiser_company_name || row.user_company_name || "—",
+    ...defaultColumnProps,
+  },
 ];
 
 export const getConditionalColumns = (type, zones, setZoneModal, handleApproval) => {
@@ -193,13 +200,7 @@ export const getConditionalColumns = (type, zones, setZoneModal, handleApproval)
   }
 
   if (["organizer", "company"].includes(type)) {
-    conditionalCols.push({
-      dataField: "company_name",
-      text: "Company Name",
-      formatter: (cell, row) =>
-        cell || row.organiser_company_name || row.user_company_name || "—",
-      ...defaultColumnProps,
-    });
+    // Company name is now in baseColumns, so this conditional block can be removed or used for other columns specific to organizer/company
   }
 
   if (type === "user") {
@@ -240,7 +241,7 @@ export const getActionColumn = (type, handlers) => ({
         icon: <IdCard size={16} />,
         onClick: () => handleShowIdCardModal(row.id),
         variant: "secondary",
-        isDisabled: row?.status !== 1 || row.approval_status !== 1,
+        isDisabled: row?.status !== 1 || parseInt(row.approval_status) !== 1,
         visible: type === "user",
       },
       {

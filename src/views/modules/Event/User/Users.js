@@ -155,11 +155,6 @@ const Users = memo(({ type }) => {
       confirmButtonText: `Yes, ${actionText} user!`,
       input: isApproval ? null : "textarea",
       inputPlaceholder: "Enter reason for rejection...",
-      inputValidator: (value) => {
-        if (!isApproval && !value.trim()) {
-          return "Rejection reason is required.";
-        }
-      },
     });
 
     if (result.isConfirmed) {

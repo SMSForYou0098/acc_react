@@ -47,7 +47,10 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
           // First, get dimensions from the background image
           const bgImg = await new Promise((resolve) => {
             fabric.Image.fromURL(finalImage, (img) => {
-              if (!img) return;
+              if (!img) {
+                resolve(null);
+                return;
+              }
 
               const displayWidth = 400;
               const scaleFactor = displayWidth / img.width;
@@ -127,11 +130,11 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
               capitalize(userData?.company_name) || 'Campany Name',
 
             ];
-            const fontSize = 26;
+            const fontSize = 18;
             const fontFamily = 'Arial';
-            const valueLeft = 120; // <-- Adjust this to match where values should start
-            const startTop = 330;  // <-- Adjust this to match the first value's Y position
-            const verticalGap = 35; // <-- Adjust this to match the gap between lines
+            const valueLeft = canvas.width / 2; // <-- Adjust this to match where values should start
+            const startTop = 320;  // <-- Adjust this to match the first value's Y position
+            const verticalGap = 25; // <-- Adjust this to match the gap between lines
 
             values.forEach((value, i) => {
               const valueText = new fabric.Text(value, {
@@ -143,7 +146,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
                 fontWeight: 'bold', // Make text bold
                 selectable: false,
                 evented: false,
-                originX: 'left'
+                originX: 'center'
               });
               canvas.add(valueText);
             });
@@ -155,11 +158,11 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
           if (qrCodeCanvas) {
             const qrCodeDataURL = qrCodeCanvas.toDataURL('image/png');
             fabric.Image.fromURL(qrCodeDataURL, (qrImg) => {
-              const qrCodeWidth = 105;
-              const qrCodeHeight = 105;
+              const qrCodeWidth = 90;
+              const qrCodeHeight = 90;
               const padding = 5;
-              const qrPositionX = 147;
-              const qrPositionY = 464;
+              const qrPositionX = 155;
+              const qrPositionY = 410;
 
               const qrBackground = new fabric.Rect({
                 left: qrPositionX - padding,
@@ -188,16 +191,13 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
             });
           }
 
-          // 7 square boxes
-          // ...existing code...
-          // 7 square boxes with border radius and check icons
           const boxWidth = 28;
           const boxHeight = 28;
           const boxPadding = 8;
           const numBoxes = 10;
           const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
           const boxStartX = (canvas.width - totalBoxesWidth) / 2; // Center horizontally
-          const boxStartY = 598;
+          const boxStartY = 530;
           const borderRadius = 8; // Add border radius
           const checkedBoxes = [0, 2, 4]; // Indices of boxes that should have check icons
 
@@ -250,7 +250,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
     return () => {
       canvas.dispose();
     };
-  }, [finalImage, userData, orderId]);
+  }, [finalImage, userData, orderId, bgRequired, showDetails, userImage]);
 
 
   // Add this new function to upload file to API in background
@@ -353,35 +353,96 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
       ];
       values.forEach((text, i) => {
         hdCanvas.add(new fabric.Text(text, {
-          left: 120 * RESOLUTION_MULTIPLIER,
-          top: (330 + i * 35) * RESOLUTION_MULTIPLIER,
-          fontSize: 26 * RESOLUTION_MULTIPLIER,
+          left: HD_WIDTH / 2, // Center horizontally like in drawCanvas
+          top: (320 + i * 25) * RESOLUTION_MULTIPLIER, // Match drawCanvas spacing
+          fontSize: 18 * RESOLUTION_MULTIPLIER, // Match drawCanvas fontSize
           fontFamily: 'Arial',
           fill: '#076066',
           fontWeight: 'bold',
           selectable: false,
           evented: false,
-          originX: 'left',
+          originX: 'center' // Center origin like in drawCanvas
         }));
       });
 
       // 5. Add QR
       const qrDataURL = qrCodeRef.current.toDataURL('image/png');
+      const qrCodeWidth = 90 * RESOLUTION_MULTIPLIER;
+      const qrCodeHeight = 90 * RESOLUTION_MULTIPLIER;
+      const padding = 5 * RESOLUTION_MULTIPLIER;
+      const qrPositionX = 155 * RESOLUTION_MULTIPLIER;
+      const qrPositionY = 410 * RESOLUTION_MULTIPLIER;
+      const qrBackground = new fabric.Rect({
+        left: qrPositionX - padding,
+        top: qrPositionY - padding,
+        width: qrCodeWidth + padding * 2,
+        height: qrCodeHeight + padding * 2,
+        fill: 'white',
+        rx: 12 * RESOLUTION_MULTIPLIER,
+        ry: 12 * RESOLUTION_MULTIPLIER,
+        selectable: false,
+        evented: false,
+      });
       const qrImg = await new Promise((resolve) => {
         fabric.Image.fromURL(qrDataURL, (img) => {
           img.set({
-            left: 147 * RESOLUTION_MULTIPLIER,
-            top: 464 * RESOLUTION_MULTIPLIER,
-            scaleX: (105 * RESOLUTION_MULTIPLIER) / img.width,
-            scaleY: (105 * RESOLUTION_MULTIPLIER) / img.height,
+            left: qrPositionX,
+            top: qrPositionY,
             selectable: false,
             evented: false,
+            scaleX: qrCodeWidth / img.width,
+            scaleY: qrCodeHeight / img.height,
           });
           resolve(img);
         });
       });
-      hdCanvas.add(qrImg);
 
+      hdCanvas.add(qrBackground, qrImg);
+
+
+      const boxWidth = 28 * RESOLUTION_MULTIPLIER;
+      const boxHeight = 28 * RESOLUTION_MULTIPLIER;
+      const boxPadding = 8 * RESOLUTION_MULTIPLIER;
+      const numBoxes = 10; // Match drawCanvas
+      const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
+      const boxStartX = (HD_WIDTH - totalBoxesWidth) / 2; // Center horizontally
+      const boxStartY = 530 * RESOLUTION_MULTIPLIER; // Match drawCanvas
+      const borderRadius = 8 * RESOLUTION_MULTIPLIER;
+      const checkedBoxes = [0, 2, 4]; // Same indices as drawCanvas
+
+      for (let i = 0; i < numBoxes; i++) {
+        const box = new fabric.Rect({
+          left: boxStartX + i * (boxWidth + boxPadding),
+          top: boxStartY,
+          width: boxWidth,
+          height: boxHeight,
+          fill: checkedBoxes.includes(i) ? '#076066' : '#f0f0f0',
+          rx: borderRadius,
+          ry: borderRadius,
+          stroke: '#076066',
+          strokeWidth: 2 * RESOLUTION_MULTIPLIER,
+          selectable: false,
+          evented: false,
+        });
+        hdCanvas.add(box);
+
+        // Add check icon for selected boxes
+        if (checkedBoxes.includes(i)) {
+          const checkIcon = new fabric.Text('✓', {
+            left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
+            top: boxStartY + boxHeight / 2,
+            fontSize: 20 * RESOLUTION_MULTIPLIER,
+            fill: 'white',
+            fontFamily: 'Arial',
+            fontWeight: 'bold',
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+          });
+          hdCanvas.add(checkIcon);
+        }
+      }
       hdCanvas.renderAll();
 
       // 6. Export
@@ -493,7 +554,7 @@ const IdCardCanvas = ({ finalImage, orderId, userData, userImage, showDetails = 
 
   return (
     <>
-      <div className="d-flex gap-2 mb-3 w-50 justify-content-center">
+      <div className="d-flex gap-2 mb-3 w-100 justify-content-center">
         <Button
           variant="primary"
           className="flex-grow-1 d-flex align-items-center justify-content-center gap-2"
