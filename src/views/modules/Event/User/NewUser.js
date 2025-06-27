@@ -726,23 +726,30 @@ const NewUser = memo(() => {
                                 roleName === "User" && (
                                   <Form.Group className="col-md-3 form-group">
                                     <Form.Label>Company:</Form.Label>
-                                    <Select
-                                      options={companyOptions}
-                                      value={selectedCompany}
-                                      placeholder="Select Company"
-                                      onChange={(selected) =>
-                                        setSelectedCompany(selected)
-                                      }
-                                      isDisabled={!companyOptions.length}
-                                      className="js-choice"
-                                      menuPortalTarget={document.body}
-                                      styles={{
-                                        menuPortal: (base) => ({
-                                          ...base,
-                                          zIndex: 9999,
-                                        }),
-                                      }}
-                                    />
+
+                                    {companyOptions.length > 0 ? (
+                                      <Select
+                                        options={companyOptions}
+                                        value={selectedCompany}
+                                        placeholder="Select Company"
+                                        onChange={(selected) =>
+                                          setSelectedCompany(selected)
+                                        }
+                                        isDisabled={!companyOptions.length}
+                                        className="js-choice"
+                                        menuPortalTarget={document.body}
+                                        styles={{
+                                          menuPortal: (base) => ({
+                                            ...base,
+                                            zIndex: 9999,
+                                          }),
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="text-muted fst-italic">
+                                        No company available
+                                      </div>
+                                    )}
                                   </Form.Group>
                                 )}
                             </>

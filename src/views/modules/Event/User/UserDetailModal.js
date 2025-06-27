@@ -138,14 +138,17 @@ const UserDetailModal = (props) => {
                         </div>
                         <div className="my-2">{renderStatusBadge(selectedUser.approval_status)}</div>
                       </Col>
-                      {InfoCol(
+                      {
+                        selectedUser?.role_name === 'User' &&  
+                      InfoCol(
                         "Desgination",
                         capitalize(selectedUser?.designation),
                         <User size={16} />,
                         4
-                      )}
+                      )
+                      }
                       {/* Photo ID Document */}
-                      {selectedUser.photo_id && (
+                      {selectedUser?.photo_id && (
                         <Col md={4}>
                           <div className=" small d-flex align-items-center gap-2 mb-2">
                             <FileText size={16} /> Identity Document:
@@ -182,12 +185,12 @@ const UserDetailModal = (props) => {
                     )}
                     {InfoCol(
                       "Contact Person",
-                      selectedUser?.company?.name || "N/A",
+                      selectedUser?.role_name === "Organizer" ? selectedUser?.name : selectedUser?.company?.name || "N/A",
                       <Users size={16} />
                     )}
                     {InfoCol(
                       "Contact Number",
-                      selectedUser?.company?.number || "N/A",
+                      selectedUser?.role_name === "Organizer" ? selectedUser?.contact :selectedUser?.company?.number || "N/A",
                       <Users size={16} />
                     )}
                   </Row>
@@ -211,11 +214,11 @@ const UserDetailModal = (props) => {
                     formatDateTime(selectedUser.created_at),
                     <Calendar size={16} />
                   )}
-                  {InfoCol(
+                  {/* {InfoCol(
                     "Updated At",
                     formatDateTime(selectedUser.updated_at) || "N/A",
                     <RefreshCw size={16} />
-                  )}
+                  )} */}
                 </Row>
               </Section>
             </div>
