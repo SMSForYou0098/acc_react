@@ -7,8 +7,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 const IdCardCanvas = (props) => {
-  
-  const { finalImage, userData, orderId, bgRequired, showDetails = true, userImage, zones } = props;
+  const { finalImage, userData, orderId, bgRequired, showDetails = true, userImage, zones,hidePrint = false } = props;
   const { api, authToken, ErrorAlert } = useMyContext();
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -608,6 +607,7 @@ useEffect(() => {
           {loading ? "Please Wait..." : "Download"}
           <ArrowBigDownDash size={18} />
         </Button>
+        {!hidePrint && 
         <Button
           variant="secondary"
           className="flex-grow-1 d-flex align-items-center justify-content-center gap-2"
@@ -617,6 +617,7 @@ useEffect(() => {
           Print
           <Printer size={18} />
         </Button>
+        }
       </div>
 
       <div
@@ -628,6 +629,8 @@ useEffect(() => {
               border: "1px solid #ddd",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               display: "inline-block", // Ensures proper sizing
+              borderRadius: "12px",
+              overflow: "hidden",
             }}
           >
             <canvas

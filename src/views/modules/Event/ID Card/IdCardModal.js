@@ -4,7 +4,29 @@ import { Modal } from 'react-bootstrap';
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import IdCardCanvas from './IdCardCanvas';
 
-const IdCardModal = ({ show, onHide, id, idCardData, bgRequired,zones }) => {
+export const FetchImageBlob = async (api, authToken, setLoading, imageUrl, setState) => {
+  try {
+    const res = await axios.post(
+      `${api}get-image/retrive/data`,
+      { path: imageUrl },
+      {
+        responseType: 'blob',
+        headers: {
+          Authorization: "Bearer " + authToken,
+        },
+      }
+    );
+    const imageBlob = res.data;
+    const url = URL.createObjectURL(imageBlob);
+    setState(url);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    setState(null);
+  } finally {
+    setLoading(false);
+  }
+}
+const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
   const { api, authToken } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -16,33 +38,12 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired,zones }) => {
     if (show && id) {
       setLoading(true);
       setOrderId(idCardData?.order_id || null);
-      FetchImageBlob(idCardData?.photo, setUserImage);
-      FetchImageBlob(idCardData?.background_image, setFinalImage);
+      FetchImageBlob(api, authToken, setLoading, idCardData?.photo, setUserImage);
+      FetchImageBlob(api, authToken, setLoading, idCardData?.background_image, setFinalImage);
     }
   }, [show, id]);
 
-  const FetchImageBlob = async (imageUrl, setState) => {
-    try {
-      const res = await axios.post(
-        `${api}get-image/retrive/data`,
-        { path: imageUrl },
-        {
-          responseType: 'blob',
-          headers: {
-            Authorization: "Bearer " + authToken,
-          },
-        }
-      );
-      const imageBlob = res.data;
-      const url = URL.createObjectURL(imageBlob);
-      setState(url);
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      setState(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+
 
   useEffect(() => {
     return () => {

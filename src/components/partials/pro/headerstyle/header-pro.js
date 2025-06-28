@@ -2,7 +2,6 @@ import React, { useState, useEffect, memo } from "react";
 import { Navbar, Container, Dropdown, Button, } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IndexRouters } from "../../../../router";
-import { motion, AnimatePresence } from "framer-motion";
 import CustomToggle from "../../../dropdowns";
 import { useDispatch, useSelector } from "react-redux";
 import * as SettingSelector from "../../../../store/setting/selectors";
@@ -17,7 +16,6 @@ const Headerpro = memo((props) => {
   const headerNavbar = useSelector(SettingSelector.header_navbar);
   const [show1, setShow1] = useState(false);
   useEffect(() => {
-
     document.getElementsByTagName("html")[0].classList.add(themeFontSize);
     //offcanvase code
     const result = window.matchMedia("(max-width: 1200px)");
@@ -32,8 +30,8 @@ const Headerpro = memo((props) => {
         document.documentElement.style.removeProperty("overflow");
       }
     });
-    if (window.innerWidth <= "1200") {
 
+    if (window.innerWidth <= "1200") {
       if (show1 === true) {
         document.documentElement.style.setProperty("overflow", "hidden");
       } else {
@@ -59,24 +57,7 @@ const Headerpro = memo((props) => {
       console.warn("Aside element not found");
     }
   };
-
-  let location = useLocation();
   let history = useNavigate();
-
-
-
-  //optimized code 
-  const route = IndexRouters && IndexRouters
-    ?.slice(6)
-    ?.flatMap(element => element.children.map(child => ({ element, child })))
-    ?.find(({ element, child }) => {
-      const path = element.path === "" ? `/${child.path}` : `/${element.path}/${child.path}`;
-      return path === location.pathname;
-    });
-
-
-  //active link
-  const ActiveLink = route ? route?.child.active : undefined;
 
   //custom code
   const dispatch = useDispatch();
@@ -85,7 +66,6 @@ const Headerpro = memo((props) => {
     dispatch(logout());
     navigate('/sign-in')
   }
-  const [isLoading, setIsLoading] = useState(true);
 
 
   return (
@@ -133,6 +113,8 @@ const Headerpro = memo((props) => {
                 </div>
               </Dropdown.Toggle>
               <Dropdown.Menu variant="end">
+                {userRole !== 'User' && 
+                <>
                 <Dropdown.Item
                   as="button"
                   onClick={() => history(`/dashboard/users/manage/${UserData?.id}`)}
@@ -140,6 +122,8 @@ const Headerpro = memo((props) => {
                   Profile
                 </Dropdown.Item>
                 <hr className="dropdown-divider" />
+                </>
+                }
                 <Dropdown.Item onClick={() => handleLogOut()}>
                   Logout
                 </Dropdown.Item>

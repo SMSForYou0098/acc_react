@@ -21,7 +21,7 @@ const ZonesPreview = ({ zones, assignedZoneIds, name = "User" }) => {
               (z) => String(z) === String(zone.id)
             );
             return (
-              <Col md={4} key={zone.id}>
+              <Col md={3} key={zone.id}>
                 <Badge
                   bg={isAssigned ? "success" : "light"}
                   text={isAssigned ? "white" : "dark"}

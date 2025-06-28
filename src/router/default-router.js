@@ -27,7 +27,7 @@ const RoleBasedRedirect = ({ children, allowedPaths = [] }) => {
   const isAllowed = allowedPaths.some(path => currentPath.startsWith(path));
 
   if (normalizedRole === "user" && !isAllowed) {
-    return <Navigate to="/dashboard/user" replace />;
+    return <Navigate to="/user-profile" replace />;
   }
 
   return children;
@@ -52,6 +52,7 @@ export const DefaultRouter = [
           </RoleBasedRedirect>
         ),
         children: [
+
           {
             index: true,
             element: <Navigate to="/dashboard/" replace />
@@ -116,7 +117,6 @@ export const DefaultRouter = [
               }
             ]
           },
-
           {
             path: "scan/",
             children: [
@@ -142,11 +142,6 @@ export const DefaultRouter = [
           {
             path: "users/new",
             element: <NewUser />
-          },
-
-          {
-            path: "user",
-            element: <UserPage />
           },
 
           {
@@ -227,7 +222,11 @@ export const DefaultRouter = [
             ]
           }
         ]
-      }
+      },
+      {
+        path: "user-profile",
+        element: <UserPage />
+      },
     ]
   }
 ];

@@ -78,6 +78,7 @@ const UserDetailModal = (props) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+       style={{maxHeight:'680px', overflowY: 'auto'}}
     >
       {selectedUser ? (
         <div className="py-3">
@@ -90,12 +91,9 @@ const UserDetailModal = (props) => {
             <Row className="gy-4">
               {/* User Photo */}
               {selectedUser.photo && (
-                <Col md={4}>
-                  <div className="small d-flex align-items-center gap-2 mb-2">
-                    <Image size={16} /> Profile Photo:
-                  </div>
+                <Col md={2}>
                   <CustomImage
-                    width={'50%'}
+                    width={'100%'}
                     height="auto"
                     src={selectedUser.photo}
                     alt="User Profile"
@@ -103,10 +101,10 @@ const UserDetailModal = (props) => {
                 </Col>
               )}
               {/* User Details */}
-              <Col md={8}>
+              <Col md={10}>
                 <Row className="gy-4">
                   {InfoCol("Name", selectedUser.name, <User size={16} />, 4)}
-                  {InfoCol("Email", selectedUser.email, <Mail size={16} />, 8)}
+                  {InfoCol("Email", selectedUser.email, <Mail size={16} />, 4)}
                   {InfoCol(
                     "Contact",
                     selectedUser?.contact || selectedUser?.number,
@@ -165,7 +163,6 @@ const UserDetailModal = (props) => {
           </Section>
 
           {/* Organization Details */}
-          {
             <Section
               title="Organization Details"
               color="danger"
@@ -175,24 +172,23 @@ const UserDetailModal = (props) => {
                 {InfoCol(
                   "Company Name",
                   selectedUser?.user_comp || selectedUser?.company?.company_name ||"N/A",
-                  <Briefcase size={16} />
+                  <Briefcase size={16} />,4
                 )}
                 {InfoCol(
                   "Contact Person",
                   selectedUser?.role_name === "Organizer" ? selectedUser?.name : selectedUser?.company?.name || "N/A",
-                  <Users size={16} />
+                  <Users size={16} />,4
                 )}
                 {InfoCol(
                   "Contact Number",
                   selectedUser?.role_name === "Organizer" ? selectedUser?.contact :selectedUser?.company?.number || "N/A",
-                  <Users size={16} />
+                  <Users size={16} />,4
                 )}
               </Row>
             </Section>
-          }
 
           {/* Zone Selection */}
-          {(selectedUser?.role_name === 'Company' || selectedUser?.role_name === 'User') &&
+          {(selectedUser?.role_name === 'Company' || (selectedUser?.role?.name  === 'User' || selectedUser?.role_name === 'User' )) &&
             <ZonesPreview zones={zones} assignedZoneIds={selectedUser?.company?.zone} />
           }
 
@@ -204,7 +200,7 @@ const UserDetailModal = (props) => {
           >
             <Row className="gy-3">
               {InfoCol(
-                "Created At",
+                "Registered At",
                 formatDateTime(selectedUser.created_at),
                 <Calendar size={16} />
               )}

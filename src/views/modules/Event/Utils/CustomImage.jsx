@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Image } from 'react-bootstrap';
-import FsLightbox from 'fslightbox-react';
 import PropTypes from 'prop-types';
 
 const CustomImage = ({ 
@@ -14,16 +13,8 @@ const CustomImage = ({
   fluid = true,
   style = {}
 }) => {
-  const [lightboxController, setLightboxController] = useState({
-    toggler: false,
-    slide: 1
-  });
-
-  const openLightbox = () => {
-    setLightboxController({
-      toggler: !lightboxController.toggler,
-      slide: 1
-    });
+  const openImageInNewTab = () => {
+    window.open(src, '_blank');
   };
 
   return (
@@ -42,19 +33,13 @@ const CustomImage = ({
           transition: 'transform 0.2s ease-in-out',
           ...style
         }}
-        onClick={openLightbox}
+        onClick={openImageInNewTab}
         onMouseEnter={(e) => {
           e.target.style.transform = 'scale(1.05)';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'scale(1)';
         }}
-      />
-      
-      <FsLightbox
-        toggler={lightboxController.toggler}
-        sources={[src]}
-        slide={lightboxController.slide}
       />
     </>
   );
