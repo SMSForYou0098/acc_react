@@ -1,3 +1,4 @@
+import UserCard from "../../User_Card/UserCard";
 import Signin from "../pages/sign-in";
 import SignUp from "../pages/sign-up";
 import Twofactor from "../pages/two-factor";
@@ -24,6 +25,10 @@ export const CustomAuthRouter = [
             {
                 path: 'two-factor',
                 element: <Twofactor />
+            },
+            {
+                path: 'token/:orderId',
+                element: <UserCard />
             },
         ]
     }
