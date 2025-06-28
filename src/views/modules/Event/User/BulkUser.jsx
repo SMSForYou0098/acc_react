@@ -86,7 +86,7 @@ const BulkUser = ({ show, setShow, id, type }) => {
         `${api}bulk-approval`,
         {
           ids: selectedUsers,
-          status : 1, // Assuming 1 is for approval
+          status: 1, // Assuming 1 is for approval
         },
         {
           headers: {
@@ -114,11 +114,6 @@ const BulkUser = ({ show, setShow, id, type }) => {
     } finally {
       setApproving(false);
     }
-  };
-
-  const onReject = () => {
-    console.log("Rejected User IDs:", selectedUsers);
-    onHide();
   };
 
   const getCompanyUsers = async () => {
@@ -155,10 +150,12 @@ const BulkUser = ({ show, setShow, id, type }) => {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      statusFilter === "" || // Show all users when no status filter is selected
-      (statusFilter === "approve" && parseInt(user.approval_status) === 1) ||
-      (statusFilter === "reject" && parseInt(user.approval_status) === 2) ||
-      (statusFilter === "pending" && parseInt(user.approval_status) === 0);
+  statusFilter === "" // If no status filter is selected
+    ? true // Show all users regardless of role
+    : (user.roles && user.roles[0]?.name === "User") && // Only User role when status filter is selected
+      ((statusFilter === "approve" && parseInt(user.approval_status) === 1) ||
+       (statusFilter === "reject" && parseInt(user.approval_status) === 2) ||
+       (statusFilter === "pending" && parseInt(user.approval_status) === 0));
 
     return matchesSearch && matchesStatus;
   });
@@ -401,24 +398,26 @@ const BulkUser = ({ show, setShow, id, type }) => {
                       >
                         {user?.name || "Unknown User"}
                       </motion.span>
-                      {type === "organizer" && user.role && (
+                      {type === "organizer" && user.roles && (
                         <motion.div
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.4, type: "spring" }}
                         >
                           <Badge
-                            bg="light"
+                            bg=""
                             text={
-                              user.role === "Company" ? "primary" : "warning"
+                              user.roles[0]?.name === "Company"
+                                ? "primary"
+                                : "warning"
                             }
                             className={`border small py-1 ${
-                              user.role === "Company"
+                              user.roles[0]?.name === "Company"
                                 ? "border-primary"
                                 : "border-warning"
                             }`}
                           >
-                            {user.role}
+                            {user.roles[0]?.name}
                           </Badge>
                         </motion.div>
                       )}
@@ -446,34 +445,35 @@ const BulkUser = ({ show, setShow, id, type }) => {
                       </span>
                     </motion.div>
                   </motion.div>
-
-                  <motion.div
-                    className="ms-auto"
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    {parseInt(user.approval_status) === 1 ? (
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 0.5, delay: 0.5 }}
-                      >
-                        <Check size={20} className="text-success" />
-                      </motion.div>
-                    ) : parseInt(user.approval_status) === 0 ? (
-                      <motion.div
-                        animate={{ rotate: [0, 15, -15, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <Clock size={20} className="text-warning" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                      >
-                        <X size={20} className="text-danger" />
-                      </motion.div>
-                    )}
-                  </motion.div>
+                  {user.roles[0]?.name === "User" && (
+                    <motion.div
+                      className="ms-auto"
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      {parseInt(user.approval_status) === 1 ? (
+                        <motion.div
+                          animate={{ rotate: [0, 360] }}
+                          transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                          <Check size={20} className="text-success" />
+                        </motion.div>
+                      ) : parseInt(user.approval_status) === 0 ? (
+                        <motion.div
+                          animate={{ rotate: [0, 15, -15, 0] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <Clock size={20} className="text-warning" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                        >
+                          <X size={20} className="text-danger" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>

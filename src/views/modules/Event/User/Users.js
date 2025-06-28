@@ -283,6 +283,7 @@ const Users = memo(({ type }) => {
       />
       <IdCardModal
         show={showIdModal}
+        zones={zones}
         bgRequired={bgRequired}
         onHide={handleCloseIdCardModal}
         id={selectedId}

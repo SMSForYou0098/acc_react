@@ -4,7 +4,7 @@ import { Modal } from 'react-bootstrap';
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import IdCardCanvas from './IdCardCanvas';
 
-const IdCardModal = ({ show, onHide, id, idCardData, bgRequired }) => {
+const IdCardModal = ({ show, onHide, id, idCardData, bgRequired,zones }) => {
   const { api, authToken } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -52,8 +52,22 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired }) => {
     };
   }, [finalImage]);
 
+  // make function to reset all states
+  const resetStates = () => {
+    setFinalImage(null);
+    setOrderId(null);
+    setUserImage(null);
+    setLoading(false);
+  };
+  //make handleclose function to reset states and also  destroy the modal 
+  const handleClose = () => {
+    setTimeout(() => {
+      resetStates();
+    }, 1000);
+    onHide();
+  };
   return (
-    <Modal show={show} onHide={onHide} size="lg">
+    <Modal show={show} onHide={handleClose} size="lg">
       <Modal.Header closeButton>
         <Modal.Title>Preview ID Card</Modal.Title>
       </Modal.Header>
@@ -64,6 +78,7 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired }) => {
           finalImage={finalImage}
           userImage={userImage}
           orderId={orderId}
+          zones={zones}
           userData={idCardData}
         />
       </Modal.Body>

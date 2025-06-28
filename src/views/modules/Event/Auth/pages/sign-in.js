@@ -45,7 +45,7 @@ const Signin = (() => {
       }
 
     } catch (err) {
-      if(!err.response.data.status) {
+      if(!err.response.data.status === false) {
          history('/sign-up', { state: { data } })
       }
       setError(err.response.data.message || err.response.data.error)

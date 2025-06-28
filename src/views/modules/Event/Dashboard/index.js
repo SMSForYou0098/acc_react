@@ -1,15 +1,11 @@
-import React, { useState, useEffect, memo, Fragment } from "react";
+import React, { useState, memo, Fragment } from "react";
 import { Row, Col, Card, Badge } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import Circularprogressbar from "../../../../components/circularprogressbar";
-import * as SettingSelector from "../../../../store/setting/selectors";
 import CountUp from "react-countup";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Navigation } from "swiper";
+import { Navigation } from "swiper";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import { ScanLine, Ticket, Users, Calendar, DollarSign, Activity, UserCheck, CreditCard } from "lucide-react";
-import { useMemo } from "react";
+import { Ticket, Users, Calendar, DollarSign, Activity, UserCheck, CreditCard } from "lucide-react";
 import ScannerDashBoard from "../Scanner/ScannerDashBoard";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -21,10 +17,8 @@ const generateTrendData = (count) => Array.from({ length: count }, (_, i) => gen
 
 const Index = memo(() => {
   const { userRole } = useMyContext();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [loading, setLoading] = useState(false);
-
+  
   // Mock data for all roles
   const mockData = {
     admin: {
