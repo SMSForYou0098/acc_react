@@ -22,7 +22,16 @@ export const Section = ({ title, color, icon, children }) => (
 );
 
 const UserDetailModal = (props) => {
-  const { showModal, setShowModal, selectedUser, handleApproval, zones, assignedZoneIds } = props;
+  const { 
+    showModal = true, 
+    setShowModal, 
+    selectedUser, 
+    handleApproval, 
+    zones, 
+    assignedZoneIds,
+    asDiv = false // New prop to determine if we should render as div
+  } = props;
+  
   const { formatDateTime } = useMyContext();
 
   const InfoCol = (label, value, icon, grid = 6) => (
@@ -33,7 +42,6 @@ const UserDetailModal = (props) => {
       <div className="fw-semibold text-dark fs-6">{value}</div>
     </Col>
   );
-
 
   const renderStatusBadge = (status) => {
     const statusMap = {
@@ -64,10 +72,212 @@ const UserDetailModal = (props) => {
     );
   };
 
+  // Content that will be rendered in both modal and div versions
+  const renderContent = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {selectedUser ? (
+        <div className="py-3">
+          {/* Basic Information */}
+          <Section
+            title="Basic Information"
+            color="primary"
+            icon={<Info size={18} />}
+          >
+            <Row className="gy-4">
+              {/* User Photo */}
+              {selectedUser.photo && (
+                <Col md={4}>
+                  <div className="small d-flex align-items-center gap-2 mb-2">
+                    <Image size={16} /> Profile Photo:
+                  </div>
+                  <CustomImage
+                    width={'50%'}
+                    height="auto"
+                    src={selectedUser.photo}
+                    alt="User Profile"
+                  />
+                </Col>
+              )}
+              {/* User Details */}
+              <Col md={8}>
+                <Row className="gy-4">
+                  {InfoCol("Name", selectedUser.name, <User size={16} />, 4)}
+                  {InfoCol("Email", selectedUser.email, <Mail size={16} />, 8)}
+                  {InfoCol(
+                    "Contact",
+                    selectedUser?.contact || selectedUser?.number,
+                    <Phone size={16} />,
+                    4
+                  )}
+                  {InfoCol(
+                    "Role",
+                    selectedUser?.role_name || selectedUser?.role.name,
+                    <Shield size={16} />,
+                    4
+                  )}
+                  {InfoCol(
+                    "Authentication",
+                    parseInt(selectedUser?.authentication) === 1
+                      ? "Password"
+                      : "OTP",
+                    <Key size={16} />,
+                    4
+                  )}
+                  <Col md={4}>
+                    <div className="text-muted small d-flex align-items-center gap-2">
+                      <Clock size={16} /> Status:
+                    </div>
+                    <div className="my-2">{renderStatusBadge(selectedUser.approval_status)}</div>
+                  </Col>
+                  {
+                    selectedUser?.role_name === 'User' &&  
+                  InfoCol(
+                    "Desgination",
+                    capitalize(selectedUser?.designation),
+                    <User size={16} />,
+                    4
+                  )
+                  }
+                  {/* Photo ID Document */}
+                  {selectedUser?.photo_id && (
+                    <Col md={4}>
+                      <div className=" small d-flex align-items-center gap-2 mb-2">
+                        <FileText size={16} /> Identity Document:
+                      </div>
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="d-inline-flex align-items-center"
+                        onClick={() => window.open(selectedUser.photo_id, '_blank')}
+                      >
+                        <ExternalLink size={16} className="me-2" />
+                        View Document
+                      </Button>
+                    </Col>
+                  )}
+                </Row>
+              </Col>
+            </Row>
+          </Section>
+
+          {/* Organization Details */}
+          {
+            <Section
+              title="Organization Details"
+              color="danger"
+              icon={<Building size={18} />}
+            >
+              <Row className="gy-3">
+                {InfoCol(
+                  "Company Name",
+                  selectedUser?.user_comp || selectedUser?.company?.company_name ||"N/A",
+                  <Briefcase size={16} />
+                )}
+                {InfoCol(
+                  "Contact Person",
+                  selectedUser?.role_name === "Organizer" ? selectedUser?.name : selectedUser?.company?.name || "N/A",
+                  <Users size={16} />
+                )}
+                {InfoCol(
+                  "Contact Number",
+                  selectedUser?.role_name === "Organizer" ? selectedUser?.contact :selectedUser?.company?.number || "N/A",
+                  <Users size={16} />
+                )}
+              </Row>
+            </Section>
+          }
+
+          {/* Zone Selection */}
+          {(selectedUser?.role_name === 'Company' || selectedUser?.role_name === 'User') &&
+            <ZonesPreview zones={zones} assignedZoneIds={selectedUser?.company?.zone} />
+          }
+
+          {/* Additional Info */}
+          <Section
+            title="Additional Information"
+            color="secondary"
+            icon={<Info size={18} />}
+          >
+            <Row className="gy-3">
+              {InfoCol(
+                "Created At",
+                formatDateTime(selectedUser.created_at),
+                <Calendar size={16} />
+              )}
+            </Row>
+          </Section>
+        </div>
+      ) : (
+        <div className="text-center p-4">
+          <div className="spinner-border text-primary" role="status" />
+          <p className="mt-2 d-flex align-items-center justify-content-center gap-2">
+            <RefreshCw size={16} className="animate-spin" /> Loading user
+            details...
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+
+  // Footer content
+  const renderFooter = () => (
+    <div className="border-top-0 pt-0 d-flex justify-content-end gap-2">
+      {setShowModal && (
+        <Button
+          variant="outline-secondary"
+          onClick={() => setShowModal(false)}
+          className="d-inline-flex align-items-center"
+        >
+          <X size={16} className="me-2" /> Close
+        </Button>
+      )}
+      {selectedUser && selectedUser.status === 0 && (
+        <>
+          <Button
+            variant="success"
+            className="d-inline-flex align-items-center"
+            onClick={() => {
+              handleApproval(selectedUser.id, "1");
+              setShowModal && setShowModal(false);
+            }}
+          >
+            <CheckCircle size={16} className="me-2" /> Approve
+          </Button>
+          <Button
+            variant="danger"
+            className="d-inline-flex align-items-center"
+            onClick={() => {
+              handleApproval(selectedUser.id, "2");
+              setShowModal && setShowModal(false);
+            }}
+          >
+            <XCircle size={16} className="me-2" /> Reject
+          </Button>
+        </>
+      )}
+    </div>
+  );
+
+  if (asDiv) {
+    return (
+      <div className="bg-white rounded-4 shadow-lg p-4">
+        <div className="d-flex align-items-center gap-2 fw-bold text-primary fs-4 mb-3">
+          <User size={20} className="me-1" /> User Profile
+        </div>
+        {renderContent()}
+        {renderFooter()}
+      </div>
+    );
+  }
+
   return (
     <Modal
       show={showModal}
-      onHide={() => setShowModal(false)}
+      onHide={() => setShowModal && setShowModal(false)}
       size="lg"
       centered
       contentClassName="border-0 shadow-lg rounded-4"
@@ -79,192 +289,10 @@ const UserDetailModal = (props) => {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="px-4 pt-0">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {selectedUser ? (
-            <div className="py-3">
-              {/* Basic Information */}
-              <Section
-                title="Basic Information"
-                color="primary"
-                icon={<Info size={18} />}
-              >
-                <Row className="gy-4">
-                  {/* User Photo */}
-                  {selectedUser.photo && (
-                    <Col md={4}>
-                      <div className="small d-flex align-items-center gap-2 mb-2">
-                        <Image size={16} /> Profile Photo:
-                      </div>
-                      <CustomImage
-                        width={'50%'}
-                        height="auto"
-                        src={selectedUser.photo}
-                        alt="User Profile"
-                      />
-                    </Col>
-                  )}
-                  {/* User Details */}
-                  <Col md={8}>
-                    <Row className="gy-4">
-                      {InfoCol("Name", selectedUser.name, <User size={16} />, 4)}
-                      {InfoCol("Email", selectedUser.email, <Mail size={16} />, 8)}
-                      {InfoCol(
-                        "Contact",
-                        selectedUser.contact,
-                        <Phone size={16} />,
-                        4
-                      )}
-                      {InfoCol(
-                        "Role",
-                        selectedUser?.role_name,
-                        <Shield size={16} />,
-                        4
-                      )}
-                      {InfoCol(
-                        "Authentication",
-                        parseInt(selectedUser?.authentication) === 1
-                          ? "Password"
-                          : "OTP",
-                        <Key size={16} />,
-                        4
-                      )}
-                      <Col md={4}>
-                        <div className="text-muted small d-flex align-items-center gap-2">
-                          <Clock size={16} /> Status:
-                        </div>
-                        <div className="my-2">{renderStatusBadge(selectedUser.approval_status)}</div>
-                      </Col>
-                      {
-                        selectedUser?.role_name === 'User' &&  
-                      InfoCol(
-                        "Desgination",
-                        capitalize(selectedUser?.designation),
-                        <User size={16} />,
-                        4
-                      )
-                      }
-                      {/* Photo ID Document */}
-                      {selectedUser?.photo_id && (
-                        <Col md={4}>
-                          <div className=" small d-flex align-items-center gap-2 mb-2">
-                            <FileText size={16} /> Identity Document:
-                          </div>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            className="d-inline-flex align-items-center"
-                            onClick={() => window.open(selectedUser.photo_id, '_blank')}
-                          >
-                            <ExternalLink size={16} className="me-2" />
-                            View Document
-                          </Button>
-                        </Col>
-                      )}
-                    </Row>
-                  </Col>
-
-                </Row>
-              </Section>
-
-              {/* Organization Details */}
-              {
-                <Section
-                  title="Organization Details"
-                  color="danger"
-                  icon={<Building size={18} />}
-                >
-                  <Row className="gy-3">
-                    {InfoCol(
-                      "Company Name",
-                      selectedUser?.company_name || selectedUser?.company?.company_name ||"N/A",
-                      <Briefcase size={16} />
-                    )}
-                    {InfoCol(
-                      "Contact Person",
-                      selectedUser?.role_name === "Organizer" ? selectedUser?.name : selectedUser?.company?.name || "N/A",
-                      <Users size={16} />
-                    )}
-                    {InfoCol(
-                      "Contact Number",
-                      selectedUser?.role_name === "Organizer" ? selectedUser?.contact :selectedUser?.company?.number || "N/A",
-                      <Users size={16} />
-                    )}
-                  </Row>
-                </Section>
-              }
-
-              {/* Zone Selection */}
-              {(selectedUser?.role_name === 'Company' || selectedUser?.role_name === 'User') &&
-                <ZonesPreview zones={zones} assignedZoneIds={selectedUser?.company?.zone} />
-              }
-
-              {/* Additional Info */}
-              <Section
-                title="Additional Information"
-                color="secondary"
-                icon={<Info size={18} />}
-              >
-                <Row className="gy-3">
-                  {InfoCol(
-                    "Created At",
-                    formatDateTime(selectedUser.created_at),
-                    <Calendar size={16} />
-                  )}
-                  {/* {InfoCol(
-                    "Updated At",
-                    formatDateTime(selectedUser.updated_at) || "N/A",
-                    <RefreshCw size={16} />
-                  )} */}
-                </Row>
-              </Section>
-            </div>
-          ) : (
-            <div className="text-center p-4">
-              <div className="spinner-border text-primary" role="status" />
-              <p className="mt-2 d-flex align-items-center justify-content-center gap-2">
-                <RefreshCw size={16} className="animate-spin" /> Loading user
-                details...
-              </p>
-            </div>
-          )}
-        </motion.div>
+        {renderContent()}
       </Modal.Body>
       <Modal.Footer className="border-top-0 pt-0">
-        <Button
-          variant="outline-secondary"
-          onClick={() => setShowModal(false)}
-          className="d-inline-flex align-items-center"
-        >
-          <X size={16} className="me-2" /> Close
-        </Button>
-        {selectedUser && selectedUser.status === 0 && (
-          <>
-            <Button
-              variant="success"
-              className="d-inline-flex align-items-center"
-              onClick={() => {
-                handleApproval(selectedUser.id, "1");
-                setShowModal(false);
-              }}
-            >
-              <CheckCircle size={16} className="me-2" /> Approve
-            </Button>
-            <Button
-              variant="danger"
-              className="d-inline-flex align-items-center"
-              onClick={() => {
-                handleApproval(selectedUser.id, "2");
-                setShowModal(false);
-              }}
-            >
-              <XCircle size={16} className="me-2" /> Reject
-            </Button>
-          </>
-        )}
+        {renderFooter()}
       </Modal.Footer>
     </Modal>
   );

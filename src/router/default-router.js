@@ -14,6 +14,7 @@ import WhatsAppConfig from "../views/modules/Event/AdminSetting/WhatsAppConfig";
 import CombinedView from "../views/modules/Event/CombinedView";
 import Scanner from "../views/modules/Event/Scanner/Scanner";
 import Camera from "../views/modules/Event/Scanner/Camera";
+import UserPage from "../views/modules/Event/User/UserPage";
 
 
 
@@ -110,6 +111,14 @@ export const DefaultRouter = [
             path: "users/new",
             // element: <NewUserWizard />,
             element: <NewUser />,
+            name: 'User List',
+            active: 'pages',
+            subActive: 'User'
+          },
+          {
+            path: "user",
+            // element: <NewUserWizard />,
+            element: <UserPage />,
             name: 'User List',
             active: 'pages',
             subActive: 'User'
