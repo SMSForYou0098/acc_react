@@ -189,6 +189,10 @@ const NewUser = memo(() => {
           designation: user.designation || "",
         }));
 
+         // Set role
+        setRoleId(user?.role.id);
+        setRoleName(user.role.name);
+
         // Set gstData
         setGstData({
           gstNumber: user.org_gst_no || "",
@@ -239,9 +243,7 @@ const NewUser = memo(() => {
           photoIdName: user.photo_id || "",
         });
 
-        // Set role
-        setRoleId(user.role.id);
-        setRoleName(user.role.name);
+       
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -251,8 +253,6 @@ const NewUser = memo(() => {
       // Do cleanup or state reset here if needed
     }
   };
-
-  console.log('selected com',selectedCompany)
 
   const getOrganisers = async (Name = "User") => {
     try {
@@ -344,7 +344,6 @@ const NewUser = memo(() => {
     //       //       companyName:user?.organisation
     //       //     }))
     //       // }
-    console.log('user',user)
     if (roleName === "User") {
       const idToUse = userRole === "Organizer" ? user.id : user.value;
       await fetchCompanies(idToUse);
@@ -360,7 +359,6 @@ const NewUser = memo(() => {
       });
 
       const rawCompanies = response.data?.data || [];
-      console.log('raw compnaies',rawCompanies)
       const formattedCompanies = rawCompanies.map((item) => ({
         value: item.user_id,
         label: item.company_name,
@@ -372,8 +370,6 @@ const NewUser = memo(() => {
       setCompanyOptions([]);
     }
   };
-
-  console.log('company optiohs',companyOptions)
 
   useEffect(() => {
     if (userRole === "Organizer" && UserData?.id) {
