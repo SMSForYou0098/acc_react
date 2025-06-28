@@ -231,30 +231,7 @@ const UserDetailModal = (props) => {
           <X size={16} className="me-2" /> Close
         </Button>
       )}
-      {selectedUser && selectedUser.status === 0 && (
-        <>
-          <Button
-            variant="success"
-            className="d-inline-flex align-items-center"
-            onClick={() => {
-              handleApproval(selectedUser.id, "1");
-              setShowModal && setShowModal(false);
-            }}
-          >
-            <CheckCircle size={16} className="me-2" /> Approve
-          </Button>
-          <Button
-            variant="danger"
-            className="d-inline-flex align-items-center"
-            onClick={() => {
-              handleApproval(selectedUser.id, "2");
-              setShowModal && setShowModal(false);
-            }}
-          >
-            <XCircle size={16} className="me-2" /> Reject
-          </Button>
-        </>
-      )}
+
     </div>
   );
 

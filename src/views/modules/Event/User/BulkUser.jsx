@@ -97,7 +97,6 @@ const BulkUser = ({ show, setShow, id, type }) => {
       );
 
       if (response.data.status) {
-        console.log("Users approved successfully:", selectedUsers);
         // Refresh the user list to show updated status
         await getCompanyUsers();
         // Clear selections

@@ -243,7 +243,6 @@ const NewUser = memo(() => {
           photoIdName: user.photo_id || "",
         });
 
-       
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -675,6 +674,7 @@ const NewUser = memo(() => {
                                       id="companyName"
                                       placeholder="Company Name"
                                       value={gstData.companyName}
+                                      disabled={!!id} // Disable if gstData.id exists
                                       onChange={(e) =>
                                         setGstData((prev) => ({
                                           ...prev,
@@ -683,6 +683,7 @@ const NewUser = memo(() => {
                                       }
                                     />
                                   </Form.Group>
+
                                   {roleName === "Organizer" && (
                                     <Form.Group className="col-md-3 form-group">
                                       <Form.Label htmlFor="eventName">
