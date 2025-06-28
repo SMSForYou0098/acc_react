@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
 import Default from "../layouts/dashboard/default";
 import Users from "../views/modules/Event/User/Users";
 import MailSetting from "../views/modules/Event/AdminSetting/MailSetting";
@@ -7,7 +8,6 @@ import SmsSetting from "../views/modules/Event/AdminSetting/SmsSetting";
 import AdminSetting from "../views/modules/Event/AdminSetting/AdminSetting";
 import NewUser from "../views/modules/Event/User/NewUser";
 import HomeSetting from "../views/modules/Event/AdminSetting/HomeSetting";
-
 import Roles from "../views/modules/Event/RolePermission/Roles";
 import RolePermission from "../views/modules/Event/RolePermission/RolePermission";
 import WhatsAppConfig from "../views/modules/Event/AdminSetting/WhatsAppConfig";
@@ -17,6 +17,23 @@ import Camera from "../views/modules/Event/Scanner/Camera";
 import UserPage from "../views/modules/Event/User/UserPage";
 
 
+import { useMyContext } from "../Context/MyContextProvider";
+
+const RoleBasedRedirect = ({ children, allowedPaths = [] }) => {
+  const { userRole } = useMyContext();
+  const currentPath = window.location.pathname;
+
+  const normalizedRole = userRole?.toLowerCase();
+  const isAllowed = allowedPaths.some(path => currentPath.startsWith(path));
+
+  if (normalizedRole === "user" && !isAllowed) {
+    return <Navigate to="/dashboard/user" replace />;
+  }
+
+  return children;
+};
+
+export default RoleBasedRedirect;
 
 export const DefaultRouter = [
   {
@@ -25,167 +42,192 @@ export const DefaultRouter = [
     children: [
       {
         path: "dashboard/",
-        name: 'home',
-        active: 'home',
+        element: (
+          <RoleBasedRedirect allowedPaths={[
+            "/dashboard/users/new",
+            "/dashboard/users/manage/",
+            "/dashboard/user"
+          ]}>
+            <Outlet />
+          </RoleBasedRedirect>
+        ),
         children: [
           {
-            path: 'roles/',
-            name: 'roles',
+            index: true,
+            element: <Navigate to="/dashboard/" replace />
+          },
+
+          {
+            path: "roles/",
             children: [
               {
                 path: "",
-                element: <Roles />,
-                name: 'roles',
-                active: 'roles'
+                element: (
+                  <RoleBasedRedirect>
+                    <Roles />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "assign-permission/:id",
-                element: <RolePermission />,
-                name: 'Permission',
-                active: 'Permission'
-              },
-            ]
-          },
-          {
-            path: "users/",
-            name: 'User List',
-            active: 'pages',
-            subActive: 'User',
-            children: [
-              {
-                path: "",
-                element: <Users type={'user'}/>,
-                name: 'User List',
-                active: 'pages',
-                subActive: 'User'
-              },
-              {
-                path: "company",
-                element: <Users type={'company'} />,
-                name: 'Company List',
-                active: 'pages',
-                subActive: 'Company'
-              },
-              {
-                path: "organizers",
-                element: <Users type={'organizer'} />,
-                name: 'Organizer List',
-                active: 'pages',
-                subActive: 'Organizer'
-              },
-              {
-                path: "manage/:id",
-                element: <NewUser />,
-                name: 'Manage User',
-                active: 'pages',
-                subActive: 'User'
-              },
-              {
-                path: "new",
-                element: <NewUser />,
-                name: 'New User',
-                active: 'pages',
-                subActive: 'User'
+                element: (
+                  <RoleBasedRedirect>
+                    <RolePermission />
+                  </RoleBasedRedirect>
+                )
               }
             ]
           },
+
           {
-            path: 'scan/',
-            name: 'Scan',
+            path: "users/",
+            children: [
+              {
+                path: "",
+                element: (
+                  <RoleBasedRedirect>
+                    <Users type="user" />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
+                path: "company",
+                element: (
+                  <RoleBasedRedirect>
+                    <Users type="company" />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
+                path: "organizers",
+                element: (
+                  <RoleBasedRedirect>
+                    <Users type="organizer" />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
+                path: "manage/:id",
+                element: <NewUser /> // allowed for 'User'
+              },
+              {
+                path: "new",
+                element: <NewUser /> // allowed for 'User'
+              }
+            ]
+          },
+
+          {
+            path: "scan/",
             children: [
               {
                 path: "scanner",
-                element: <Scanner />,
-                name: 'Scanner',
-                subActive: 'scanner'
+                element: (
+                  <RoleBasedRedirect>
+                    <Scanner />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "camera",
-                element: <Camera />,
-                name: 'Camera',
-                subActive: 'camera'
-              },
+                element: (
+                  <RoleBasedRedirect>
+                    <Camera />
+                  </RoleBasedRedirect>
+                )
+              }
             ]
           },
+
           {
             path: "users/new",
-            // element: <NewUserWizard />,
-            element: <NewUser />,
-            name: 'User List',
-            active: 'pages',
-            subActive: 'User'
+            element: <NewUser />
           },
+
           {
             path: "user",
-            // element: <NewUserWizard />,
-            element: <UserPage />,
-            name: 'User List',
-            active: 'pages',
-            subActive: 'User'
+            element: <UserPage />
           },
+
           {
             path: "settings/",
-            active: 'settings',
-            // element: <Setting />,
             children: [
               {
                 path: "admin",
-                element: <AdminSetting />,
-                name: 'Admin',
-                subActive: 'Admin'
+                element: (
+                  <RoleBasedRedirect>
+                    <AdminSetting />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "home-setting",
-                element: <HomeSetting />,
-                name: 'home-setting',
-                subActive: 'home-setting'
+                element: (
+                  <RoleBasedRedirect>
+                    <HomeSetting />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "category",
-                element: <CombinedView />,
-                name: 'category',
-                subActive: 'category'
+                element: (
+                  <RoleBasedRedirect>
+                    <CombinedView />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "mail",
-                element: <MailSetting />,
-                name: 'Mail',
-                subActive: 'Mail'
+                element: (
+                  <RoleBasedRedirect>
+                    <MailSetting />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "payment-gateway",
-                element: <PaymentGateway />,
-                name: 'Payment',
-                subActive: 'Payment'
+                element: (
+                  <RoleBasedRedirect>
+                    <PaymentGateway />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "sms-gateway",
-                element: <SmsSetting />,
-                name: 'SMS',
-                subActive: 'SMS'
+                element: (
+                  <RoleBasedRedirect>
+                    <SmsSetting />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "whatsapp-config",
-                element: <WhatsAppConfig />,
-                name: 'whatsapp',
-                subActive: 'whatsapp'
+                element: (
+                  <RoleBasedRedirect>
+                    <WhatsAppConfig />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "otp",
-                element: <AdminSetting />,
-                name: 'OTP',
-                subActive: 'OTP'
+                element: (
+                  <RoleBasedRedirect>
+                    <AdminSetting />
+                  </RoleBasedRedirect>
+                )
               },
               {
                 path: "social-media",
-                element: <AdminSetting />,
-                name: 'Social Media',
-                subActive: 'social-media'
-              },
+                element: (
+                  <RoleBasedRedirect>
+                    <AdminSetting />
+                  </RoleBasedRedirect>
+                )
+              }
             ]
-          },
+          }
         ]
-      },
-    ],
-  },
+      }
+    ]
+  }
 ];
