@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {  useEffect, useState } from 'react';
 import UserDetailModal from './UserDetailModal';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import axios from 'axios';
@@ -9,7 +9,6 @@ import LoaderComp from '../CustomUtils/LoaderComp';
 
 const UserPage = () => {
   const { UserData, api, authToken, ErrorAlert } = useMyContext();
-  console.log('UserData', UserData);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [userImage, setUserImage] = useState(null);
@@ -45,10 +44,11 @@ const UserPage = () => {
           Authorization: `Bearer ${authToken}`,
         },
       });
-      console.log('userDa', response)
       setSelectedUser(response.data.user);
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      const err = error.response?.data?.message || error.response?.data?.error || `Failed to fetch User Data`;
+      ErrorAlert(err);
+      setSelectedUser(null);
     } finally {
       setLoading(false);
     }
@@ -61,8 +61,8 @@ const UserPage = () => {
 
   useEffect(() => {
     if (selectedUser) {
-      FetchImageBlob(api, authToken, setLoading, selectedUser?.photo, setUserImage);
-      FetchImageBlob(api, authToken, setLoading, selectedUser?.category_url, setFinalImage);
+      FetchImageBlob(api, setLoading, selectedUser?.photo, setUserImage);
+      FetchImageBlob(api, setLoading, selectedUser?.category_url, setFinalImage);
     }
   }, [selectedUser]);
 

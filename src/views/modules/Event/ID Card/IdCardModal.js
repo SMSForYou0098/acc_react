@@ -4,17 +4,19 @@ import { Modal } from 'react-bootstrap';
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import IdCardCanvas from './IdCardCanvas';
 
-export const FetchImageBlob = async (api, authToken, setLoading, imageUrl, setState) => {
+export const FetchImageBlob = async (api, setLoading, imageUrl, setState) => {
+
+  if (!imageUrl) {
+    setState(null);
+    setLoading(false);
+    return;
+  }
+
   try {
     const res = await axios.post(
       `${api}get-image/retrive/data`,
       { path: imageUrl },
-      {
-        responseType: 'blob',
-        headers: {
-          Authorization: "Bearer " + authToken,
-        },
-      }
+      { responseType: 'blob' }
     );
     const imageBlob = res.data;
     const url = URL.createObjectURL(imageBlob);
@@ -27,7 +29,7 @@ export const FetchImageBlob = async (api, authToken, setLoading, imageUrl, setSt
   }
 }
 const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
-  const { api, authToken } = useMyContext();
+  const { api } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -38,8 +40,8 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
     if (show && id) {
       setLoading(true);
       setOrderId(idCardData?.order_id || null);
-      FetchImageBlob(api, authToken, setLoading, idCardData?.photo, setUserImage);
-      FetchImageBlob(api, authToken, setLoading, idCardData?.background_image, setFinalImage);
+      FetchImageBlob(api, setLoading, idCardData?.photo, setUserImage);
+      FetchImageBlob(api, setLoading, idCardData?.background_image, setFinalImage);
     }
   }, [show, id]);
 
