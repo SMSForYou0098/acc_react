@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
 import { CreateHDCanvas,  HandlePrint,  UploadToAPIBackground,  } from './utils/Canvas_Utils'
+import { useMyContext } from '../../../../Context/MyContextProvider';
 
 const IDCardDragAndDrop = ({ 
   finalImage, 
@@ -15,8 +16,8 @@ const IDCardDragAndDrop = ({
   zones = [], 
   bgRequired = true,
   api,
-  authToken,
-  ErrorAlert
+  isEdit = true,
+  isCircle = false
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -25,7 +26,7 @@ const IDCardDragAndDrop = ({
   const [elementPositions, setElementPositions] = useState({});
   const [savedLayout, setSavedLayout] = useState();
   const [fetchingLayout, setFetchingLayout] = useState(true);
-
+  const {authToken,ErrorAlert} = useMyContext();
   // Fetch layout from API
   useEffect(() => {
     if (!orderId) {
@@ -102,267 +103,256 @@ const IDCardDragAndDrop = ({
   };
 
   useEffect(() => {
-    if (!finalImage || !userData || fetchingLayout) return;
+  if (!canvasRef.current || !finalImage || !userData || fetchingLayout) return;
 
-    const canvas = new fabric.Canvas(canvasRef.current, {
-      selection: true,
-      preserveObjectStacking: true
+  let isMounted = true;
+  let canvas;
+
+  const setupEventListeners = (canvasInstance) => {
+    canvasInstance.on('object:modified', () => {
+      trackElementPositions(canvasInstance);
     });
+  };
 
-    const setupEventListeners = (canvas) => {
-      canvas.on('object:modified', () => {
-        const positions = trackElementPositions(canvas);
+  const initCanvas = async () => {
+    try {
+      canvas = new fabric.Canvas(canvasRef.current, {
+        selection: isEdit,
+        preserveObjectStacking: true
       });
-    };
 
-    const initCanvas = async () => {
-      try {
-        // Load background image
-        const bgImg = await new Promise((resolve) => {
-          fabric.Image.fromURL(finalImage, (img) => {
-            if (!img) return;
-            
-            const displayWidth = 400;
-            const scaleFactor = displayWidth / img?.width;
-            const displayHeight = img?.height * scaleFactor;
-            
-            canvas.setDimensions({ width: displayWidth, height: displayHeight });
-            img.scaleX = scaleFactor;
-            img.scaleY = scaleFactor;
-            img.selectable = false;
-            img.evented = false;
+      // Load background image
+      const bgImg = await new Promise((resolve) => {
+        fabric.Image.fromURL(finalImage, (img) => {
+          if (!img || !isMounted) return;
+          const displayWidth = 400;
+          const scaleFactor = displayWidth / img.width;
+          const displayHeight = img.height * scaleFactor;
+
+          canvas.setDimensions({ width: displayWidth, height: displayHeight });
+          img.scaleX = scaleFactor;
+          img.scaleY = scaleFactor;
+          img.selectable = false;
+          img.evented = false;
+          resolve(img);
+        }, { crossOrigin: 'anonymous' });
+      });
+
+      if (!isMounted) return;
+
+      if (bgRequired) {
+        canvas.setBackgroundImage(bgImg, () => {
+          if (canvas.contextContainer) canvas.renderAll();
+        });
+      } else {
+        canvas.setBackgroundColor('white', () => {
+          if (canvas.contextContainer) canvas.renderAll();
+        });
+      }
+
+      // Add user image (circle or rounded square)
+      if (userImage) {
+        const photo = await new Promise((resolve) => {
+          fabric.Image.fromURL(userImage, (img) => {
+            if (!img || !isMounted) return;
+
+            const circleCenterX = 200;
+            const circleCenterY = 235;
+            const circleRadius = 70;
+            const boxSize = circleRadius * 2.5 * 1.05;
+            const baseSize = Math.max(img.width, img.height);
+            const scale = boxSize / baseSize;
+
+            const clipShape = isCircle
+              ? new fabric.Circle({
+                  radius: circleRadius,
+                  originX: 'center',
+                  originY: 'center',
+                })
+              : new fabric.Rect({
+                  width: boxSize,
+                  height: boxSize,
+                  rx: 20,
+                  ry: 20,
+                  originX: 'center',
+                  originY: 'center',
+                });
+
+            img.set({
+              left: savedLayout?.userPhoto?.left || circleCenterX,
+              top: savedLayout?.userPhoto?.top || circleCenterY,
+              originX: 'center',
+              originY: 'center',
+              scaleX: savedLayout?.userPhoto?.scaleX || scale,
+              scaleY: savedLayout?.userPhoto?.scaleY || scale,
+              selectable: isEdit,
+              evented: isEdit,
+              hasControls: isEdit,
+              hasBorders: isEdit,
+              name: 'userPhoto',
+              clipPath: clipShape,
+            });
+
             resolve(img);
           }, { crossOrigin: 'anonymous' });
         });
 
-        if (bgRequired) {
-          canvas.setBackgroundImage(bgImg, canvas.renderAll.bind(canvas));
-        } else {
-          canvas.backgroundColor = 'white';
+        if (isMounted) {
+          canvas.add(photo);
         }
+      }
 
-        // Add user photo with circular clipping
-        if (userImage) {
-          const photo = await new Promise((resolve) => {
-            fabric.Image.fromURL(userImage, (img) => {
-              if (!img) return;
-              
-              const circleCenterX = 200;
-              const circleCenterY = 235;
-              const circleRadius = 70;
-              const baseSize = Math.max(img?.width, img.height);
-              const scale = (circleRadius * 2.5 * 1.05) / baseSize;
+      // Add text elements
+      const addTextElement = (text, name, defaultLeft, defaultTop) => {
+        const savedPos = savedLayout?.[name];
+        return new fabric.Text(text, {
+          fontSize: 18,
+          fontFamily: 'Arial',
+          fill: '#076066',
+          fontWeight: 'bold',
+          left: savedPos?.left || defaultLeft,
+          top: savedPos?.top || defaultTop,
+          originX: savedPos?.originX || 'center',
+          originY: savedPos?.originY || 'top',
+          scaleX: savedPos?.scaleX || 1,
+          scaleY: savedPos?.scaleY || 1,
+          angle: savedPos?.angle || 0,
+          selectable: isEdit,
+          evented: isEdit,
+          hasControls: isEdit,
+          hasBorders: isEdit,
+          name: name
+        });
+      };
+
+      const valueLeft = canvas?.width / 2;
+      const startTop = 320;
+      const verticalGap = 25;
+
+      const values = [
+        capitalize(userData?.name) || 'User Name',
+        capitalize(userData?.designation) || 'Designation',
+        capitalize(userData?.company_name || userData?.comp_name) || 'Company Name',
+      ];
+
+      values.forEach((text, i) => {
+        canvas.add(addTextElement(text, `textValue_${i}`, valueLeft, startTop + i * verticalGap));
+      });
+
+      // QR Code
+      if (orderId) {
+        try {
+          const qrDataURL = await QRCode.toDataURL(orderId, { margin: 0.5 });
+          const qrImg = await new Promise((resolve) => {
+            fabric.Image.fromURL(qrDataURL, (img) => {
+              if (!img || !isMounted) return;
+
+              const qrCodeWidth = 100;
+              const qrCodeHeight = 100;
+              const qrPositionX = 155;
+              const qrPositionY = 410;
 
               img.set({
-                left: savedLayout?.userPhoto?.left || circleCenterX,
-                top: savedLayout?.userPhoto?.top || circleCenterY,
-                originX: 'center',
-                originY: 'center',
-                scaleX: savedLayout?.userPhoto?.scaleX || scale,
-                scaleY: savedLayout?.userPhoto?.scaleY || scale,
-                selectable: true,
-                evented: true,
-                hasControls: true,
-                hasBorders: true,
-                name: 'userPhoto',
-                clipPath: new fabric.Circle({
-                  radius: circleRadius,
-                  originX: 'center',
-                  originY: 'center',
-                  left: circleCenterX,
-                  top: circleCenterY,
-                  absolutePositioned: true,
-                }),
+                left: savedLayout?.qrCode?.left || qrPositionX,
+                top: savedLayout?.qrCode?.top || qrPositionY,
+                scaleX: savedLayout?.qrCode?.scaleX || (qrCodeWidth / img.width),
+                scaleY: savedLayout?.qrCode?.scaleY || (qrCodeHeight / img.height),
+                originX: 'left',
+                originY: 'top',
+                selectable: isEdit,
+                evented: isEdit,
+                hasControls: isEdit,
+                hasBorders: isEdit,
+                name: 'qrCode'
               });
+
               resolve(img);
             }, { crossOrigin: 'anonymous' });
           });
-          canvas.add(photo);
+
+          if (isMounted) canvas.add(qrImg);
+        } catch (err) {
+          console.error('QR Code Error:', err);
         }
+      }
 
-        // Add text elements
-        const addTextElement = (text, name, defaultLeft, defaultTop) => {
-          const savedPos = savedLayout?.[name];
-          return new fabric.Text(text, {
-            fontSize: 18,
-            fontFamily: 'Arial',
-            fill: '#076066',
-            fontWeight: 'bold',
-            left: savedPos?.left || defaultLeft,
-            top: savedPos?.top || defaultTop,
-            originX: savedPos?.originX || 'center',
-            originY: savedPos?.originY || 'top',
-            scaleX: savedPos?.scaleX || 1,
-            scaleY: savedPos?.scaleY || 1,
-            angle: savedPos?.angle || 0,
-            selectable: true,
-            evented: true,
-            hasControls: true,
-            hasBorders: true,
-            name: name
-          });
-        };
+      // Zone Boxes
+      const boxWidth = 28;
+      const boxHeight = 28;
+      const boxPadding = 8;
+      const numBoxes = zones?.length ?? 0;
+      const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
+      const boxStartX = (canvas?.width - totalBoxesWidth) / 2;
+      const boxStartY = 530;
+      const borderRadius = 8;
 
-        // Position user details
-        const valueLeft = canvas?.width / 2;
-        const startTop = 320;
-        const verticalGap = 25;
+      const userZones = userData?.company?.zone
+        ? (Array.isArray(userData.company.zone)
+            ? userData.company.zone
+            : JSON.parse(userData.company.zone))
+        : [];
 
-        const values = [
-          capitalize(userData?.name) || 'User Name',
-          capitalize(userData?.designation) || 'Designation',
-          capitalize(userData?.company_name || userData?.comp_name) || 'Company Name',
-        ];
+      for (let i = 0; i < numBoxes; i++) {
+        const currentZone = zones[i];
+        const isUserZone = userZones.includes(currentZone?.id || currentZone);
 
-        values.forEach((text, i) => {
-          canvas.add(addTextElement(
-            text,
-            `textValue_${i}`,
-            valueLeft,
-            startTop + i * verticalGap
-          ));
+        const box = new fabric.Rect({
+          left: boxStartX + i * (boxWidth + boxPadding),
+          top: boxStartY,
+          width: boxWidth,
+          height: boxHeight,
+          fill: isUserZone ? '#076066' : '#f0f0f0',
+          rx: borderRadius,
+          ry: borderRadius,
+          stroke: '#076066',
+          strokeWidth: 2,
+          selectable: false,
+          evented: false,
+          name: `zoneBox_${i}`
         });
+        canvas.add(box);
 
-        // Add QR code
-        if (orderId) {
-          try {
-            const qrDataURL = await QRCode.toDataURL(orderId);
-            const qrImg = await new Promise((resolve) => {
-              fabric.Image.fromURL(qrDataURL, (img) => {
-                if (!img) return;
-                
-                const qrCodeWidth = 90;
-                const qrCodeHeight = 90;
-                const qrPositionX = 155;
-                const qrPositionY = 410;
-                
-                img.set({
-                  left: savedLayout?.qrCode?.left || qrPositionX,
-                  top: savedLayout?.qrCode?.top || qrPositionY,
-                  scaleX: savedLayout?.qrCode?.scaleX || (qrCodeWidth / img?.width),
-                  scaleY: savedLayout?.qrCode?.scaleY || (qrCodeHeight / img?.height),
-                  originX: 'left',
-                  originY: 'top',
-                  selectable: true,
-                  evented: true,
-                  hasControls: true,
-                  hasBorders: true,
-                  name: 'qrCode'
-                });
-                resolve(img);
-              }, { crossOrigin: 'anonymous' });
-            });
-
-            // Add QR code background
-            const padding = 5;
-            const qrBackground = new fabric.Rect({
-              left: (savedLayout?.qrCode?.left || 155) - padding,
-              top: (savedLayout?.qrCode?.top || 410) - padding,
-              width: 90 + padding * 2,
-              height: 90 + padding * 2,
-              fill: 'white',
-              rx: 12,
-              ry: 12,
-              selectable: false,
-              evented: false,
-              name: 'qrBackground'
-            });
-
-            canvas.add(qrBackground, qrImg);
-          } catch (err) {
-            console.error('Failed to generate QR code:', err);
-          }
-        }
-
-        // Add zone boxes
-        const boxWidth = 28;
-        const boxHeight = 28;
-        const boxPadding = 8;
-        const numBoxes = zones?.length ?? 0;
-        const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
-        const boxStartX = (canvas?.width - totalBoxesWidth) / 2;
-        const boxStartY = 530;
-        const borderRadius = 8;
-
-        const userZones = userData?.company?.zone ?
-          (Array.isArray(userData.company.zone) ?
-            userData.company.zone :
-            JSON.parse(userData.company.zone)) : [];
-
-        for (let i = 0; i < numBoxes; i++) {
-          const currentZone = zones[i];
-          const isUserZone = userZones.includes(currentZone?.id || currentZone);
-          
-          const box = new fabric.Rect({
-            left: boxStartX + i * (boxWidth + boxPadding),
-            top: boxStartY,
-            width: boxWidth,
-            height: boxHeight,
-            fill: isUserZone ? '#076066' : '#f0f0f0',
-            rx: borderRadius,
-            ry: borderRadius,
-            stroke: '#076066',
-            strokeWidth: 2,
-            selectable: false,
-            evented: false,
-            name: `zoneBox_${i}`
-          });
-          canvas.add(box);
-
-          if (isUserZone) {
-            const checkIcon = new fabric.Text('✓', {
-              left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
-              top: boxStartY + boxHeight / 2,
+        const label = isUserZone
+          ? new fabric.Text('✓', {
               fontSize: 16,
               fill: 'white',
-              fontFamily: 'Arial',
               fontWeight: 'bold',
-              originX: 'center',
-              originY: 'center',
-              selectable: false,
-              evented: false,
-              name: `zoneCheck_${i}`
-            });
-            canvas.add(checkIcon);
-          } else {
-            const zoneNumber = new fabric.Text((i + 1).toString(), {
-              left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
-              top: boxStartY + boxHeight / 2,
+            })
+          : new fabric.Text((i + 1).toString(), {
               fontSize: 14,
-              fill: isUserZone ? 'white' : '#076066',
-              fontFamily: 'Arial',
+              fill: '#076066',
               fontWeight: 'bold',
-              originX: 'center',
-              originY: 'center',
-              selectable: false,
-              evented: false,
-              name: `zoneNumber_${i}`
             });
-            canvas.add(zoneNumber);
-          }
-        }
 
-        // Apply any additional layout adjustments
-        applySavedLayout(canvas);
-        
-        // Setup event listeners
-        setupEventListeners(canvas);
-        
-        // Initial tracking
-        trackElementPositions(canvas);
-        
-        setCanvasReady(true);
-      } catch (err) {
-        console.error('Canvas initialization error:', err);
+        label.set({
+          left: box.left + boxWidth / 2,
+          top: box.top + boxHeight / 2,
+          originX: 'center',
+          originY: 'center',
+          fontFamily: 'Arial',
+          selectable: false,
+          evented: false,
+          name: isUserZone ? `zoneCheck_${i}` : `zoneNumber_${i}`
+        });
+        canvas.add(label);
       }
-    };
 
-    initCanvas();
+      applySavedLayout(canvas);
+      setupEventListeners(canvas);
+      trackElementPositions(canvas);
+      if (isMounted) setCanvasReady(true);
+    } catch (err) {
+      console.error('Canvas initialization error:', err);
+    }
+  };
 
-    return () => {
-      canvas.dispose();
-    };
-  }, [finalImage, userData, userImage, orderId, savedLayout, fetchingLayout, zones, bgRequired]);
+  initCanvas();
+
+  return () => {
+    isMounted = false;
+    if (canvas) canvas.dispose();
+  };
+}, [canvasRef.current, finalImage, userData, userImage, orderId, savedLayout, fetchingLayout, zones, bgRequired, isEdit, isCircle]);
 
   const downloadCanvas = async () => {
     setLoading(true);
@@ -449,15 +439,17 @@ const IDCardDragAndDrop = ({
   return (
     <>
       <div className="d-flex gap-2 mb-3 justify-content-end">
-        <Button
-          variant="primary"
-          onClick={() => saveLayoutToBackend(elementPositions)}
-          disabled={!canvasReady || loading}
-          className="d-flex align-items-center gap-2"
-        >
-          {loading ? 'Saving...' : 'Save Layout'}
-          <Save size={16} />
-        </Button>
+        {isEdit && (
+          <Button
+            variant="primary"
+            onClick={() => saveLayoutToBackend(elementPositions)}
+            disabled={!canvasReady || loading}
+            className="d-flex align-items-center gap-2"
+          >
+            {loading ? 'Saving...' : 'Save Layout'}
+            <Save size={16} />
+          </Button>
+        )}
         <Button
           variant="primary"
           onClick={downloadCanvas}

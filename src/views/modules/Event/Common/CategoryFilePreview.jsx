@@ -1,6 +1,7 @@
 import React from "react";
-import { Col } from "react-bootstrap";
+import { Button, Col } from "react-bootstrap";
 import { motion, AnimatePresence } from "framer-motion";
+import CanvasSettings from "./CanvasSettings";
 
 const CategoryFilePreview = (props) => {
   const { formFields, formData } = props;
@@ -151,7 +152,10 @@ const CategoryFilePreview = (props) => {
 
   return (
     <Col lg={4} className="d-flex justify-content-center align-items-center">
+      <div className="d-flex flex-column align-items-center gap-2 w-100">
+      <CanvasSettings previewUrl={src} />
       {renderContent()}
+    </div>
     </Col>
   );
 };
