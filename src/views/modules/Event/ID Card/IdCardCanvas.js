@@ -4,9 +4,8 @@ import { Button, Spinner } from 'react-bootstrap';
 import { ArrowBigDownDash, Printer } from 'lucide-react';
 import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
-import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
-import { CreateHDCanvas, HandlePrint, UploadToAPIBackground } from './utils/Canvas_Utils';
+import { CreateHDCanvas, HandlePrint, UploadToAPIBackground } from './utils/CanvasUtils';
 const IdCardCanvas = (props) => {
   const { finalImage, userData, orderId, bgRequired, showDetails = true, userImage, zones,hidePrint = false } = props;
   const { api, authToken, ErrorAlert } = useMyContext();
@@ -274,6 +273,7 @@ useEffect(() => {
   // Add this new function to upload file to API in background
   const downloadCanvas = async () => {
       setLoading(true);
+      
       try {
         const hdCanvas = await CreateHDCanvas({
           finalImage,
@@ -283,7 +283,7 @@ useEffect(() => {
           zones,
           bgRequired
         });
-        
+       // return  console.log( hdCanvas); // Return the HD canvas for further processing
         hdCanvas.renderAll();
         const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
   
@@ -398,7 +398,7 @@ useEffect(() => {
         )}
       </div>
       <div style={{ display: "none" }}>
-        <QRCodeCanvas ref={qrCodeRef} value={orderId} size={150 * 3} />
+        <QRCodeCanvas ref={qrCodeRef} value={orderId} size={200 * 3} bgColor="transparent"/>
       </div>
     </>
   );

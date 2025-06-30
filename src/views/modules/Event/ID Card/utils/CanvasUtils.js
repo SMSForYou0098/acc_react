@@ -10,7 +10,7 @@ export const CreateHDCanvas = async ({
   orderId,
   zones = [],
   bgRequired = true,
-  resolutionMultiplier = 3
+  resolutionMultiplier = 10,
 }) => {
   const BASE_WIDTH = 400;
   const HD_WIDTH = BASE_WIDTH * resolutionMultiplier;
@@ -23,20 +23,24 @@ export const CreateHDCanvas = async ({
 
   // 2. Draw background
   const bgImg = await new Promise((resolve) => {
-    fabric.Image.fromURL(finalImage, (img) => {
-      const scale = HD_WIDTH / img?.width;
-      img.scaleX = scale;
-      img.scaleY = scale;
-      img.selectable = false;
-      img.evented = false;
-      resolve(img);
-    }, { crossOrigin: 'anonymous' });
+    fabric.Image.fromURL(
+      finalImage,
+      (img) => {
+        const scale = HD_WIDTH / img?.width;
+        img.scaleX = scale;
+        img.scaleY = scale;
+        img.selectable = false;
+        img.evented = false;
+        resolve(img);
+      },
+      { crossOrigin: "anonymous" }
+    );
   });
 
   if (bgRequired && bgImg) {
     hdCanvas.setBackgroundImage(bgImg, hdCanvas.renderAll.bind(hdCanvas));
   } else {
-    hdCanvas.backgroundColor = 'white';
+    hdCanvas.backgroundColor = "white";
   }
 
   // 3. Add user image
@@ -46,28 +50,33 @@ export const CreateHDCanvas = async ({
     const centerY = 235 * resolutionMultiplier;
 
     const userImg = await new Promise((resolve) => {
-      fabric.Image.fromURL(userImage, (img) => {
-        const scale = (circleRadius * 2.5 * 1.05) / Math.max(img?.width, img.height);
-        img.set({
-          left: centerX,
-          top: centerY,
-          originX: 'center',
-          originY: 'center',
-          scaleX: scale,
-          scaleY: scale,
-          selectable: false,
-          evented: false,
-          clipPath: new fabric.Circle({
-            radius: circleRadius,
-            originX: 'center',
-            originY: 'center',
+      fabric.Image.fromURL(
+        userImage,
+        (img) => {
+          const scale =
+            (circleRadius * 2.5 * 1.05) / Math.max(img?.width, img.height);
+          img.set({
             left: centerX,
             top: centerY,
-            absolutePositioned: true,
-          }),
-        });
-        resolve(img);
-      }, { crossOrigin: 'anonymous' });
+            originX: "center",
+            originY: "center",
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false,
+            clipPath: new fabric.Circle({
+              radius: circleRadius,
+              originX: "center",
+              originY: "center",
+              left: centerX,
+              top: centerY,
+              absolutePositioned: true,
+            }),
+          });
+          resolve(img);
+        },
+        { crossOrigin: "anonymous" }
+      );
     });
 
     hdCanvas.add(userImg);
@@ -75,42 +84,41 @@ export const CreateHDCanvas = async ({
 
   // 4. Add text
   const values = [
-    capitalize(userData?.name) || 'User Name',
-    capitalize(userData?.designation) || 'Designation',
-    capitalize(userData?.company_name || userData?.comp_name) || 'Company Name',
+    capitalize(userData?.name) || "User Name",
+    capitalize(userData?.designation) || "Designation",
+    capitalize(userData?.company_name || userData?.comp_name) || "Company Name",
   ];
   values.forEach((text, i) => {
-    hdCanvas.add(new fabric.Text(text, {
-      left: HD_WIDTH / 2,
-      top: (320 + i * 25) * resolutionMultiplier,
-      fontSize: 18 * resolutionMultiplier,
-      fontFamily: 'Arial',
-      fill: '#076066',
-      fontWeight: 'bold',
-      selectable: false,
-      evented: false,
-      originX: 'center'
-    }));
+    hdCanvas.add(
+      new fabric.Text(text, {
+        left: HD_WIDTH / 2,
+        top: (320 + i * 25) * resolutionMultiplier,
+        fontSize: 18 * resolutionMultiplier,
+        fontFamily: "Arial",
+        fill: "#076066",
+        fontWeight: "bold",
+        selectable: false,
+        evented: false,
+        originX: "center",
+      })
+    );
   });
 
   // 5. Add QR
-  const qrDataURL = await QRCode.toDataURL(orderId);
-  const qrCodeWidth = 90 * resolutionMultiplier;
-  const qrCodeHeight = 90 * resolutionMultiplier;
-  const padding = 5 * resolutionMultiplier;
+  const qrDataURL = await QRCode.toDataURL(orderId, {
+    width: 120 * resolutionMultiplier, // Increase QR code generation size
+    margin: 1, // Reduce margin in QR code itself
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF' // This creates the white background in QR
+    }
+  });
+  const qrCodeWidth = 100 * resolutionMultiplier; // Increased from 100 to 120
+  const qrCodeHeight = 100 * resolutionMultiplier; // Increased from 100 to 120
   const qrPositionX = 155 * resolutionMultiplier;
   const qrPositionY = 410 * resolutionMultiplier;
-  const qrBackground = new fabric.Rect({
-    left: qrPositionX - padding,
-    top: qrPositionY - padding,
-    width: qrCodeWidth + padding * 2,
-    height: qrCodeHeight + padding * 2,
-    fill: 'white',
-    rx: 12 * resolutionMultiplier,
-    ry: 12 * resolutionMultiplier,
-    selectable: false,
-    evented: false,
-  });
+  const Radius = 12 * resolutionMultiplier; // Border radius for QR code
+
   const qrImg = await new Promise((resolve) => {
     fabric.Image.fromURL(qrDataURL, (img) => {
       img.set({
@@ -120,12 +128,21 @@ export const CreateHDCanvas = async ({
         evented: false,
         scaleX: qrCodeWidth / img?.width,
         scaleY: qrCodeHeight / img.height,
+        clipPath: new fabric.Rect({
+          left: qrPositionX,
+          top: qrPositionY,
+          width: qrCodeWidth,
+          height: qrCodeHeight,
+          rx: Radius,
+          ry: Radius,
+          absolutePositioned: true,
+        }),
       });
       resolve(img);
     });
   });
 
-  hdCanvas.add(qrBackground, qrImg);
+  hdCanvas.add(qrImg);
 
   // 6. Add zone boxes
   const boxWidth = 28 * resolutionMultiplier;
@@ -137,10 +154,11 @@ export const CreateHDCanvas = async ({
   const boxStartY = 530 * resolutionMultiplier;
   const borderRadius = 8 * resolutionMultiplier;
 
-  const userZones = userData?.company?.zone ?
-    (Array.isArray(userData.company.zone) ?
-      userData.company.zone :
-      JSON.parse(userData.company.zone)) : [];
+  const userZones = userData?.company?.zone
+    ? Array.isArray(userData.company.zone)
+      ? userData.company.zone
+      : JSON.parse(userData.company.zone)
+    : [];
 
   for (let i = 0; i < numBoxes; i++) {
     const currentZone = zones[i];
@@ -150,10 +168,10 @@ export const CreateHDCanvas = async ({
       top: boxStartY,
       width: boxWidth,
       height: boxHeight,
-      fill: isUserZone ? '#076066' : '#f0f0f0',
+      fill: isUserZone ? "#076066" : "#f0f0f0",
       rx: borderRadius,
       ry: borderRadius,
-      stroke: '#076066',
+      stroke: "#076066",
       strokeWidth: 2 * resolutionMultiplier,
       selectable: false,
       evented: false,
@@ -161,15 +179,15 @@ export const CreateHDCanvas = async ({
     hdCanvas.add(box);
 
     if (isUserZone) {
-      const checkIcon = new fabric.Text('✓', {
+      const checkIcon = new fabric.Text("✓", {
         left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
         top: boxStartY + boxHeight / 2,
         fontSize: 16 * resolutionMultiplier,
-        fill: 'white',
-        fontFamily: 'Arial',
-        fontWeight: 'bold',
-        originX: 'center',
-        originY: 'center',
+        fill: "white",
+        fontFamily: "Arial",
+        fontWeight: "bold",
+        originX: "center",
+        originY: "center",
         selectable: false,
         evented: false,
       });
@@ -179,11 +197,11 @@ export const CreateHDCanvas = async ({
         left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
         top: boxStartY + boxHeight / 2,
         fontSize: 14 * resolutionMultiplier,
-        fill: isUserZone ? 'white' : '#076066',
-        fontFamily: 'Arial',
-        fontWeight: 'bold',
-        originX: 'center',
-        originY: 'center',
+        fill: isUserZone ? "white" : "#076066",
+        fontFamily: "Arial",
+        fontWeight: "bold",
+        originX: "center",
+        originY: "center",
         selectable: false,
         evented: false,
       });
@@ -191,16 +209,16 @@ export const CreateHDCanvas = async ({
     }
   }
 
-  hdCanvas.renderAll();
+  // hdCanvas.renderAll();
   return hdCanvas;
 };
 
-export const UploadToAPIBackground = async ({ 
-  dataURL, 
-  filename, 
-  userId, 
-  api, 
-  authToken 
+export const UploadToAPIBackground = async ({
+  dataURL,
+  filename,
+  userId,
+  api,
+  authToken
 }) => {
   try {
     const response = await fetch(dataURL);
@@ -222,13 +240,13 @@ export const UploadToAPIBackground = async ({
   }
 };
 
-export const HandlePrint = async ({ 
-  hdCanvas, 
-  orderId, 
-  userId, 
-  api, 
-  authToken, 
-  ErrorAlert 
+export const HandlePrint = async ({
+  hdCanvas,
+  orderId,
+  userId,
+  api,
+  authToken,
+  ErrorAlert
 }) => {
   const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
 
