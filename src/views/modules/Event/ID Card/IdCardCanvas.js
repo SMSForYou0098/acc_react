@@ -6,6 +6,7 @@ import { capitalize } from 'lodash';
 import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
+import { CreateHDCanvas, HandlePrint, UploadToAPIBackground } from './utils/Canvas_Utils';
 const IdCardCanvas = (props) => {
   const { finalImage, userData, orderId, bgRequired, showDetails = true, userImage, zones,hidePrint = false } = props;
   const { api, authToken, ErrorAlert } = useMyContext();
@@ -127,8 +128,7 @@ useEffect(() => {
             const values = [
               capitalize(userData?.name) || 'User Name',
               capitalize(userData?.designation) || 'User Designation',
-              capitalize(userData?.company_name || userData?.company?.company_name)  || 'Company Name',
-
+              capitalize(userData?.company_name || userData?.comp_name || userData?.company?.company_name)  || 'Campany Name',
             ];
             const fontSize = 18;
             const fontFamily = 'Arial';
@@ -272,325 +272,78 @@ useEffect(() => {
 
 
   // Add this new function to upload file to API in background
-  const uploadToAPIBackground = async (dataURL, filename) => {
-    try {
-      // Convert dataURL to blob
-      const response = await fetch(dataURL);
-      const blob = await response.blob();
-
-      // Create FormData
-      const formData = new FormData();
-      formData.append('card', blob, filename);
-      formData.append('user_id', userData?.id);
-
-      // Upload to API using axios
-      const apiResponse = await axios.post(`${api}user-card`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${authToken}`,
-        },
-      });
-
-      return apiResponse.data;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const createHDCanvas = async () => {
-    const RESOLUTION_MULTIPLIER = 3;
-    const BASE_WIDTH = 400;
-    const HD_WIDTH = BASE_WIDTH * RESOLUTION_MULTIPLIER;
-
-    // 1. Create off-screen canvas
-    const hdCanvas = new fabric.Canvas(null, {
-      width: HD_WIDTH,
-      height: 600 * RESOLUTION_MULTIPLIER, // Approx height
-    });
-
-    // 2. Draw background
-    const bgImg = await new Promise((resolve) => {
-      fabric.Image.fromURL(finalImage, (img) => {
-        const scale = HD_WIDTH / img?.width;
-        img.scaleX = scale;
-        img.scaleY = scale;
-        img.selectable = false;
-        img.evented = false;
-        resolve(img);
-      }, { crossOrigin: 'anonymous' });
-    });
-
-    if (bgRequired && bgImg) {
-      hdCanvas.setBackgroundImage(bgImg, hdCanvas.renderAll.bind(hdCanvas));
-    }
-
-    // 3. Add user image
-    if (userImage) {
-      const circleRadius = 70 * RESOLUTION_MULTIPLIER;
-      const centerX = 200 * RESOLUTION_MULTIPLIER;
-      const centerY = 235 * RESOLUTION_MULTIPLIER;
-
-      const userImg = await new Promise((resolve) => {
-        fabric.Image.fromURL(userImage, (img) => {
-          const scale = (circleRadius * 2.5 * 1.05) / Math.max(img?.width, img.height);
-          img.set({
-            left: centerX,
-            top: centerY,
-            originX: 'center',
-            originY: 'center',
-            scaleX: scale,
-            scaleY: scale,
-            selectable: false,
-            evented: false,
-            clipPath: new fabric.Circle({
-              radius: circleRadius,
-              originX: 'center',
-              originY: 'center',
-              left: centerX,
-              top: centerY,
-              absolutePositioned: true,
-            }),
-          });
-          resolve(img);
-        }, { crossOrigin: 'anonymous' });
-      });
-
-      hdCanvas.add(userImg);
-    }
-
-    // 4. Add text
-    const values = [
-      capitalize(userData?.name) || 'User Name',
-      capitalize(userData?.designation) || 'Designation',
-      capitalize(userData?.company_name) || 'Company',
-    ];
-    values.forEach((text, i) => {
-      hdCanvas.add(new fabric.Text(text, {
-        left: HD_WIDTH / 2, // Center horizontally like in drawCanvas
-        top: (320 + i * 25) * RESOLUTION_MULTIPLIER, // Match drawCanvas spacing
-        fontSize: 18 * RESOLUTION_MULTIPLIER, // Match drawCanvas fontSize
-        fontFamily: 'Arial',
-        fill: '#076066',
-        fontWeight: 'bold',
-        selectable: false,
-        evented: false,
-        originX: 'center' // Center origin like in drawCanvas
-      }));
-    });
-
-    // 5. Add QR
-    const qrDataURL = qrCodeRef.current.toDataURL('image/png');
-    const qrCodeWidth = 90 * RESOLUTION_MULTIPLIER;
-    const qrCodeHeight = 90 * RESOLUTION_MULTIPLIER;
-    const padding = 5 * RESOLUTION_MULTIPLIER;
-    const qrPositionX = 155 * RESOLUTION_MULTIPLIER;
-    const qrPositionY = 410 * RESOLUTION_MULTIPLIER;
-    const qrBackground = new fabric.Rect({
-      left: qrPositionX - padding,
-      top: qrPositionY - padding,
-      width: qrCodeWidth + padding * 2,
-      height: qrCodeHeight + padding * 2,
-      fill: 'white',
-      rx: 12 * RESOLUTION_MULTIPLIER,
-      ry: 12 * RESOLUTION_MULTIPLIER,
-      selectable: false,
-      evented: false,
-    });
-    const qrImg = await new Promise((resolve) => {
-      fabric.Image.fromURL(qrDataURL, (img) => {
-        img.set({
-          left: qrPositionX,
-          top: qrPositionY,
-          selectable: false,
-          evented: false,
-          scaleX: qrCodeWidth / img?.width,
-          scaleY: qrCodeHeight / img.height,
-        });
-        resolve(img);
-      });
-    });
-
-    hdCanvas.add(qrBackground, qrImg);
-
-    // 6. Add zone boxes
-    const boxWidth = 28 * RESOLUTION_MULTIPLIER;
-    const boxHeight = 28 * RESOLUTION_MULTIPLIER;
-    const boxPadding = 8 * RESOLUTION_MULTIPLIER;
-    const numBoxes = zones?.length ?? 0;
-    const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
-    const boxStartX = (HD_WIDTH - totalBoxesWidth) / 2;
-    const boxStartY = 530 * RESOLUTION_MULTIPLIER;
-    const borderRadius = 8 * RESOLUTION_MULTIPLIER;
-
-    for (let i = 0; i < numBoxes; i++) {
-      const currentZone = zones[i];
-      const userZones = userData?.company?.zone ?
-        (Array.isArray(userData.company.zone) ?
-          userData.company.zone :
-          JSON.parse(userData.company.zone)) : [];
-      const isUserZone = userZones.includes(currentZone?.id || currentZone);
-      const box = new fabric.Rect({
-        left: boxStartX + i * (boxWidth + boxPadding),
-        top: boxStartY,
-        width: boxWidth,
-        height: boxHeight,
-        fill: isUserZone ? '#076066' : '#f0f0f0',
-        rx: borderRadius,
-        ry: borderRadius,
-        stroke: '#076066',
-        strokeWidth: 2 * RESOLUTION_MULTIPLIER,
-        selectable: false,
-        evented: false,
-      });
-      hdCanvas.add(box);
-
-      // Add check icon for selected boxes
-      if (isUserZone) {
-        const checkIcon = new fabric.Text('✓', {
-          left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
-          top: boxStartY + boxHeight / 2,
-          fontSize: 16 * RESOLUTION_MULTIPLIER,
-          fill: 'white',
-          fontFamily: 'Arial',
-          fontWeight: 'bold',
-          originX: 'center',
-          originY: 'center',
-          selectable: false,
-          evented: false,
-        });
-        hdCanvas.add(checkIcon);
-      } else {
-        // Add zone number (always visible)
-        const zoneNumber = new fabric.Text((i + 1).toString(), {
-          left: boxStartX + i * (boxWidth + boxPadding) + boxWidth / 2,
-          top: boxStartY + boxHeight / 2,
-          fontSize: 14 * RESOLUTION_MULTIPLIER,
-          fill: isUserZone ? 'white' : '#076066',
-          fontFamily: 'Arial',
-          fontWeight: 'bold',
-          originX: 'center',
-          originY: 'center',
-          selectable: false,
-          evented: false,
-        });
-        hdCanvas.add(zoneNumber);
-      }
-    }
-
-    hdCanvas.renderAll();
-    return hdCanvas;
-  };
-
   const downloadCanvas = async () => {
-    setLoading(true);
-    try {
-      const hdCanvas = await createHDCanvas();
-      hdCanvas.renderAll();
-
-      // 6. Export
-      const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
-
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = `id_card_${orderId || 'id'}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      const filename = `id_card_${orderId || 'id'}.png`;
-      uploadToAPIBackground(dataURL, filename).then((result) => {
-        if (result) {
-
-          // toast.success('ID Card uploaded to server');
-        }
-      });
-
-
-      hdCanvas.dispose(); // clean up memory
-    } catch (err) {
-      alert('HD Download failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const printCanvas = async () => {
-    setLoading(true);
-    try {
-      // Use HD canvas for printing too
-      const hdCanvas = await createHDCanvas();
-      const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
-
+      setLoading(true);
       try {
-        const response = await axios.get(`${api}card-status/${userData.id}/1 `,
-          { headers: { Authorization: `Bearer ${authToken}` } });
-
-        if (!response.data.status) {
-          ErrorAlert('Card status update failed. Printing will continue.');
-        }
-      } catch (apiError) {
-        ErrorAlert('Failed to update card status. Printing will continue.');
+        const hdCanvas = await CreateHDCanvas({
+          finalImage,
+          userImage,
+          userData,
+          orderId,
+          zones,
+          bgRequired
+        });
+        
+        hdCanvas.renderAll();
+        const dataURL = hdCanvas.toDataURL({ format: 'png', quality: 1.0 });
+  
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `id_card_${orderId || 'id'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+  
+        const filename = `id_card_${orderId || 'id'}.png`;
+        UploadToAPIBackground({
+          dataURL,
+          filename,
+          userId: userData?.id,
+          api,
+          authToken
+        }).then((result) => {
+          if (result) {
+            // toast.success('ID Card uploaded to server');
+          }
+        });
+  
+        hdCanvas.dispose();
+      } catch (err) {
+        alert('HD Download failed. Please try again.');
+      } finally {
+        setLoading(false);
       }
-
-      // Open print window
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) throw new Error('Popup blocked. Please allow popups.');
-
-      printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Print ID Card</title>
-        <style>
-          body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #fff;
-          }
-          img {
-            max-width: 100%;
-            max-height: 100vh;
-          }
-        </style>
-      </head>
-      <body>
-        <img id="printImage" src="${dataURL}" />
-      </body>
-    </html>
-  `);
-      printWindow.document.close();
-
-      // Trigger print once image loads
-      printWindow.onload = () => {
-        const img = printWindow.document.getElementById('printImage');
-        if (img.complete) {
-          printWindow.focus();
-          printWindow.print();
-        } else {
-          img.onload = () => {
-            printWindow.focus();
-            printWindow.print();
-          };
-          img.onerror = () => {
-            console.error('Image failed to load for printing');
-            alert('Failed to load image for printing.');
-          };
-        }
-      };
-
-      hdCanvas.dispose(); // clean up memory
-    } catch (err) {
-      console.error('Print process failed:', err);
-      alert('Printing failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+  
+    const printCanvas = async () => {
+      setLoading(true);
+      try {
+        const hdCanvas = await CreateHDCanvas({
+          finalImage,
+          userImage,
+          userData,
+          orderId,
+          zones,
+          bgRequired
+        });
+  
+        await HandlePrint({
+          hdCanvas,
+          orderId,
+          userId: userData.id,
+          api,
+          authToken,
+          ErrorAlert
+        });
+  
+        hdCanvas.dispose();
+      } catch (err) {
+        console.error('Print process failed:', err);
+        alert('Printing failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <>

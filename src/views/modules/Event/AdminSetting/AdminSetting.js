@@ -3,7 +3,6 @@ import { Card, Col, Row, Form, Button } from 'react-bootstrap'
 import { useMyContext } from '../../../../Context/MyContextProvider'
 import axios from 'axios'
 import SiteSettings from './SettingComps/SiteSettings'
-import SiteSeoFields from './SettingComps/SiteSeoFields'
 import WelcomeModal from './SettingComps/WelcomeModal'
 
 const AdminSetting = () => {
@@ -131,21 +130,6 @@ const AdminSetting = () => {
                                         setMissedCallNumber={setMissedCallNumber}
                                         setNotifyReq={setNotifyReq}
                                         notifyReq={notifyReq}
-                                    />
-                                    {/* -----------------SEO------------------ */}
-                                    <hr className="hr-horizontal" />
-
-                                    <SiteSeoFields
-                                        setMetaTag={setMetaTag}
-                                        metaTag={metaTag}
-                                        setMetaTitle={setMetaTitle}
-                                        metaTitle={metaTitle}
-                                        metaDescription={metaDescription}
-                                        copyright={copyright}
-                                        copyrightLink={copyrightLink}
-                                        setMetaDescription={setMetaDescription}
-                                        setCopyright={setCopyright}
-                                        setCopyrightLink={setCopyrightLink}
                                     />
                                     {/* ----------------------------------- */}
                                     <div className='d-flex justify-content-end'>
