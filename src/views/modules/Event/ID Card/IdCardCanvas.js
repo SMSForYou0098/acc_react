@@ -123,14 +123,11 @@ useEffect(() => {
 
           }
 
-
-
-
           if (showDetails) {
             const values = [
               capitalize(userData?.name) || 'User Name',
               capitalize(userData?.designation) || 'User Designation',
-              capitalize(userData?.company_name) || 'Campany Name',
+              capitalize(userData?.company_name || userData?.company?.company_name)  || 'Company Name',
 
             ];
             const fontSize = 18;
