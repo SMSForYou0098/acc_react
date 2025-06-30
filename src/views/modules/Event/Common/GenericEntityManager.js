@@ -6,14 +6,16 @@ import Swal from 'sweetalert2';
 import { Edit, Trash2 } from 'lucide-react';
 import { CustomTooltip } from '../CustomUtils/CustomTooltip';
 import CustomDataTable from '../CustomHooks/CustomDataTable';
+import LayoutSelector from './LayoutSelector';
+import CategoryFilePreview from './CategoryFilePreview';
 
-const GenericEntityManager = ({ 
-    entityName, 
-    entityNamePlural, 
-    apiEndpoint, 
-    formFields = [], 
-    extraFormData = {}, 
-    cardSize = 6 
+const GenericEntityManager = ({
+    entityName,
+    entityNamePlural,
+    apiEndpoint,
+    formFields = [],
+    extraFormData = {},
+    cardSize = 6
 }) => {
     const { api, successAlert, authToken, ErrorAlert, UserData } = useMyContext();
     const [pageList, setPageList] = useState();
@@ -75,7 +77,7 @@ const GenericEntityManager = ({
             });
             if (response.data.status) {
                 setPageList(response.data.data);
-            } else{
+            } else {
                 setPageList([]);
             }
         } catch (error) {
@@ -99,7 +101,7 @@ const GenericEntityManager = ({
             editId: '',
             isLoading: false,
         }));
-        
+
         const initialFormData = {};
         formFields.forEach(field => {
             initialFormData[field.name] = field.type === 'checkbox' ? false : '';
@@ -155,76 +157,76 @@ const GenericEntityManager = ({
     }, [formData, ErrorAlert, formFields]);
 
     const handleSubmit = useCallback(async () => {
-  try {
-    setModalState((prev) => ({ ...prev, isLoading: true }));
+        try {
+            setModalState((prev) => ({ ...prev, isLoading: true }));
 
-    if (!validateForm()) {
-      setModalState((prev) => ({ ...prev, isLoading: false }));
-      return;
-    }
+            if (!validateForm()) {
+                setModalState((prev) => ({ ...prev, isLoading: false }));
+                return;
+            }
 
-    // Merge and convert to FormData
-    const combinedPayload = {
-  ...formData,
-  userId: UserData.id,
-  ...extraFormData,
-};
+            // Merge and convert to FormData
+            const combinedPayload = {
+                ...formData,
+                userId: UserData.id,
+                ...extraFormData,
+            };
 
-// Remove any preview fields ending in 'PreviewName'
-const cleanedPayload = Object.entries(combinedPayload).reduce((acc, [key, value]) => {
-  if (!key.endsWith("PreviewName")) {
-    acc[key] = value;
-  }
-  return acc;
-}, {});
+            // Remove any preview fields ending in 'PreviewName'
+            const cleanedPayload = Object.entries(combinedPayload).reduce((acc, [key, value]) => {
+                if (!key.endsWith("PreviewName")) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {});
 
-const formPayload = new FormData();
-Object.entries(cleanedPayload).forEach(([key, value]) => {
-  formPayload.append(key, value);
-});
+            const formPayload = new FormData();
+            Object.entries(cleanedPayload).forEach(([key, value]) => {
+                formPayload.append(key, value);
+            });
 
 
-    const apiUrl = modalState.editState
-      ? `${api}${apiEndpoint}-update/${modalState.editId}`
-      : `${api}${apiEndpoint}-store`;
+            const apiUrl = modalState.editState
+                ? `${api}${apiEndpoint}-update/${modalState.editId}`
+                : `${api}${apiEndpoint}-store`;
 
-    const response = await axios.post(apiUrl, formPayload, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+            const response = await axios.post(apiUrl, formPayload, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
 
-    if (response.data.status) {
-      await fetchEntities();
-      handleClose();
-      successAlert(
-        response.data?.message ||
-          `${entityName} ${modalState.editState ? 'updated' : 'created'} successfully`
-      );
-    }
-  } catch (error) {
-    console.error(`Error submitting ${entityName.toLowerCase()}:`, error);
-    ErrorAlert(error.message || `Failed to save ${entityName.toLowerCase()}`);
-  } finally {
-    setModalState((prev) => ({ ...prev, isLoading: false }));
-  }
-}, [
-  formData,
-  modalState.editState,
-  modalState.editId,
-  api,
-  apiEndpoint,
-  authToken,
-  fetchEntities,
-  successAlert,
-  ErrorAlert,
-  validateForm,
-  handleClose,
-  UserData.id,
-  entityName,
-  extraFormData,
-]);
+            if (response.data.status) {
+                await fetchEntities();
+                handleClose();
+                successAlert(
+                    response.data?.message ||
+                    `${entityName} ${modalState.editState ? 'updated' : 'created'} successfully`
+                );
+            }
+        } catch (error) {
+            console.error(`Error submitting ${entityName.toLowerCase()}:`, error);
+            ErrorAlert(error.message || `Failed to save ${entityName.toLowerCase()}`);
+        } finally {
+            setModalState((prev) => ({ ...prev, isLoading: false }));
+        }
+    }, [
+        formData,
+        modalState.editState,
+        modalState.editId,
+        api,
+        apiEndpoint,
+        authToken,
+        fetchEntities,
+        successAlert,
+        ErrorAlert,
+        validateForm,
+        handleClose,
+        UserData.id,
+        entityName,
+        extraFormData,
+    ]);
 
 
     const columns = useMemo(() => [
@@ -289,21 +291,95 @@ Object.entries(cleanedPayload).forEach(([key, value]) => {
         }));
     }, []);
 
+    const handleFileReset = useCallback((fieldName) => {
+        setFormData((prev) => ({
+            ...prev,
+            [fieldName]: '',
+            [`${fieldName}PreviewUrl`]: '',
+            [`${fieldName}Layout`]: null
+        }));
+
+        // Reset the file input element
+        const fileInput = document.querySelector(`input[type="file"][data-field="${fieldName}"]`);
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }, []);
+
     const handleFormChange = useCallback((fieldName, value) => {
-  if (value instanceof File) {
-    const previewUrl = URL.createObjectURL(value);
-    setFormData((prev) => ({
-      ...prev,
-      [fieldName]: value, // actual file
-      [`${fieldName}PreviewUrl`]: previewUrl, // for preview display
-    }));
-  } else {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldName]: value,
-    }));
-  }
-}, []);
+        if (value instanceof File) {
+            const previewUrl = URL.createObjectURL(value);
+            setFormData((prev) => ({
+                ...prev,
+                [fieldName]: value, // actual file
+                [`${fieldName}PreviewUrl`]: previewUrl, // for preview display
+            }));
+        } else {
+            setFormData((prev) => ({
+                ...prev,
+                [fieldName]: value,
+            }));
+        }
+    }, []);
+
+
+
+
+    const handleImageUpload = (e, layoutId, fieldName, setFormData, errorCallback) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+
+        if (file.size > maxFileSize) {
+            errorCallback?.('File size should not exceed 5MB');
+            e.target.value = '';
+            return;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            errorCallback?.('Please select a valid image file (JPEG, PNG, GIF)');
+            e.target.value = '';
+            return;
+        }
+
+        const layoutDimensions = {
+            layout1: { width: 321, height: 204, label: '321×204px (Standard)' },
+            layout2: { width: 397, height: 204, label: '397×204px (Wide)' },
+            layout3: { width: 529, height: 204, label: '529×204px (Extra Wide)' },
+            layout4: { width: 529, height: 204, label: '529×204px (Monochrome)' }
+        };
+
+        const selectedLayout = layoutDimensions[layoutId] || layoutDimensions['layout1'];
+
+        const img = new Image();
+        img.onload = () => {
+            const imgWidth = img.width;
+            const imgHeight = img.height;
+
+            const matchesDirectly = imgWidth === selectedLayout.width && imgHeight === selectedLayout.height;
+            const matchesInverted = imgHeight === selectedLayout.width && imgWidth === selectedLayout.height;
+
+            if (!matchesDirectly && !matchesInverted) {
+                errorCallback?.(
+                    `Uploaded image size (${imgWidth}×${imgHeight}px) does not match the expected layout size (${selectedLayout.label}).`
+                );
+                e.target.value = '';
+                return;
+            }
+
+            const previewUrl = URL.createObjectURL(file);
+            setFormData((prev) => ({
+                ...prev,
+                [fieldName]: file,
+                [`${fieldName}PreviewUrl`]: previewUrl
+            }));
+        };
+
+        img.src = URL.createObjectURL(file);
+    };
+
 
 
 
@@ -314,6 +390,7 @@ Object.entries(cleanedPayload).forEach(([key, value]) => {
                 onHide={handleClose}
                 backdrop="static"
                 keyboard={false}
+                size={entityName === 'Category' ? 'lg' : 'md'}
             >
                 <Modal.Header closeButton>
                     <Modal.Title className="text-center w-100">
@@ -321,76 +398,79 @@ Object.entries(cleanedPayload).forEach(([key, value]) => {
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-  <Form>
-    <Row>
-      <Col lg={8}>
-        <Row>
-          {formFields.map((field, index) => (
-            <Col lg="12" key={index}>
-              <Form.Group className="mb-3 form-group">
-                {field.type === 'checkbox' ? (
-                  <Form.Check
-                    type="switch"
-                    id={`${field.name}-switch`}
-                    label={field.label}
-                    checked={formData[field.name] || false}
-                    onChange={(e) => handleFormChange(field.name, e.target.checked)}
-                  />
-                ) : field.type === 'file' ? (
-                  <>
-                    <Form.Label>{field.label}</Form.Label>
-                    <Form.Control
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFormChange(field.name, e.target.files[0])}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Form.Label>{field.label}</Form.Label>
-                    <Form.Control
-                      type={field.type || 'text'}
-                      value={formData[field.name] || ''}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                      onChange={(e) => handleFormChange(field.name, e.target.value)}
-                    />
-                  </>
-                )}
-              </Form.Group>
-            </Col>
-          ))}
-        </Row>
-      </Col>
+                    <Form>
+                        <Row>
+                            <Col lg={entityName === 'Category' ? 8 : 12}>
+                                <Row>
+                                    {formFields.map((field, index) => (
+                                        <Col lg="12" key={index}>
+                                            <Form.Group className="mb-3 form-group">
+                                                {field.type === 'checkbox' ? (
+                                                    <Form.Check
+                                                        type="switch"
+                                                        id={`${field.name}-switch`}
+                                                        label={field.label}
+                                                        checked={formData[field.name] || false}
+                                                        onChange={(e) => handleFormChange(field.name, e.target.checked)}
+                                                    />
+                                                ) : field.type === 'file' ? (
+                                                    <>
+                                                        {/* Layout Selection */}
+                                                        <LayoutSelector
+                                                            selectedLayout={formData[`${field.name}Layout`]}
+                                                            onLayoutSelect={(layoutId) => handleFormChange(`${field.name}Layout`, layoutId)}
+                                                            fileField={field}
+                                                            onFileReset={handleFileReset}
+                                                        />
 
-      {/* Right side preview */}
-      <Col lg={4} className="d-flex justify-content-center align-items-center">
-  {(() => {
-    const fileField = formFields.find((f) => f.type === 'file');
-    const previewUrl = formData[`${fileField?.name}PreviewUrl`];
-    const existingUrl = formData[fileField?.name];
-
-    if (previewUrl || typeof existingUrl === 'string') {
-      return (
-        <img
-          src={previewUrl || existingUrl}
-          alt="Preview"
-          style={{
-            maxHeight: '100%',
-            maxWidth: '100%',
-            objectFit: 'contain',
-            borderRadius: '8px',
-            border: '1px solid #dee2e6',
-          }}
-        />
-      );
-    }
-    return null;
-  })()}
-</Col>
-
-    </Row>
-  </Form>
-</Modal.Body>
+                                                        {/* File Upload Section */}
+                                                        {formData[`${field.name}Layout`] && (
+                                                            <>
+                                                                <Form.Label>{field.label}</Form.Label>
+                                                                <Form.Control
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    data-field={field.name}
+                                                                    onChange={(e) =>
+                                                                        handleImageUpload(
+                                                                            e,
+                                                                            formData[`${field.name}Layout`],     // layout ID like 'layout2'
+                                                                            field.name,                          // e.g. 'background_image'
+                                                                            setFormData,                         // your state setter
+                                                                            ErrorAlert                           // error handler
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <Form.Text className="text-muted">
+                                                                    Supported formats: JPEG, PNG, GIF. Maximum size: 5MB.
+                                                                    Image should match the selected layout dimensions.
+                                                                </Form.Text>
+                                                            </>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Form.Label>{field.label}</Form.Label>
+                                                        <Form.Control
+                                                            type={field.type || 'text'}
+                                                            value={formData[field.name] || ''}
+                                                            placeholder={`Enter ${field.label.toLowerCase()}`}
+                                                            onChange={(e) => handleFormChange(field.name, e.target.value)}
+                                                        />
+                                                    </>
+                                                )}
+                                            </Form.Group>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Col>
+                            {/* Right side preview */}
+                            {entityName === 'Category' &&
+                                <CategoryFilePreview formFields={formFields} formData={formData} />
+                            }
+                        </Row>
+                    </Form>
+                </Modal.Body>
 
                 <Modal.Footer>
                     <Button
