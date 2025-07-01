@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
-import IDCardDragAndDrop from '../ID Card/IDCardDragAndDrop';
-import profileImage from '../../../../assets/event/stock/profile.jpg';
-import { FetchImageBlob } from '../ID Card/IdCardModal';
-import { useMyContext } from '../../../../Context/MyContextProvider';
+import React, { useEffect, useState } from "react";
+import { Button, Modal, Form, Row, Col } from "react-bootstrap";
+import IDCardDragAndDrop from "../ID Card/IDCardDragAndDrop";
+import profileImage from "../../../../assets/event/stock/profile.jpg";
+import { FetchImageBlob } from "../ID Card/IdCardModal";
+import { useMyContext } from "../../../../Context/MyContextProvider";
+import {
+  Check,
+  Info,
+  MousePointer,
+  Move,
+  RotateCcw,
+  Save,
+  Settings,
+} from "lucide-react";
+import ImageStyleSelector from "./ImageStyleSelector";
 
 const CanvasSettings = ({ previewUrl }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -11,40 +21,90 @@ const CanvasSettings = ({ previewUrl }) => {
   const [finalImage, setFinalImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCircle, setIsCircle] = useState(true); // For image style
-
+  const [zones, setZones] = useState([
+    {
+      id: 1,
+      name: "Zone 1",
+    },
+    {
+      id: 2,
+      name: "Zone 2",
+    },
+    {
+      id: 3,
+      name: "Zone 3",
+    },
+    {
+      id: 4,
+      name: "Zone 4",
+    },
+    {
+      id: 5,
+      name: "Zone 5",
+    },
+  ]); // Assuming zones are not used in this component
   const [dummyUserData, setDummyUserData] = useState({
-    name: "John Doe",
-    company_name: "Example Corp",
-    designation: "Software Engineer",
+    name: "Your name",
+    company_name: "Your Company name",
+    designation: "Your designation",
+    company: { zone: [2, 3, 5] },
   });
 
   useEffect(() => {
     setLoading(true);
+
+    // Check if previewUrl is already a blob URL
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      setFinalImage(previewUrl);
+      setLoading(false);
+      return;
+    }
+
     const fetchImages = async () => {
       await Promise.all([
         FetchImageBlob(api, setLoading, previewUrl, setFinalImage),
       ]);
     };
-    fetchImages();
+
+    if (previewUrl) {
+      fetchImages();
+    } else {
+      setLoading(false);
+    }
   }, [previewUrl, api]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setDummyUserData((prev) => ({ ...prev, [name]: value }));
   };
+  const handleZoneClick = (zoneId) => {
+    const isAlreadySelected = dummyUserData.company.zone.includes(zoneId);
 
-  console.log("Final Image:", finalImage);
+    const updatedZones = isAlreadySelected
+      ? dummyUserData.company.zone.filter((id) => id !== zoneId)
+      : [...dummyUserData.company.zone, zoneId];
 
+    setDummyUserData((prev) => ({
+      ...prev,
+      company: {
+        ...prev.company,
+        zone: updatedZones,
+      },
+    }));
+  };
   return (
     <>
-      {finalImage && (
-        <div className="d-flex justify-content-center">
+      {previewUrl && (
+        <div className="d-flex justify-content-between w-100 align-items-center px-4">
+          <h6 className="p-0 m-0">ID Card Preview</h6>
           <Button
             variant="outline-primary"
+            size="sm"
             onClick={() => setShowSettingsModal(true)}
-            className="mt-2"
+            className="d-flex align-items-center gap-2"
           >
-            Open Settings
+            <Settings size={16} />
+            Settings
           </Button>
         </div>
       )}
@@ -63,7 +123,7 @@ const CanvasSettings = ({ previewUrl }) => {
         <Modal.Body>
           <Row>
             {/* Left Column: Form controls */}
-            <Col md={4}>
+            <Col md={6}>
               <h5>User Info</h5>
               <Form>
                 <Form.Group className="mb-3">
@@ -76,18 +136,6 @@ const CanvasSettings = ({ previewUrl }) => {
                     placeholder="Enter name"
                   />
                 </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Company</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="company_name"
-                    value={dummyUserData.company_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter company"
-                  />
-                </Form.Group>
-
                 <Form.Group className="mb-3">
                   <Form.Label>Designation</Form.Label>
                   <Form.Control
@@ -98,25 +146,90 @@ const CanvasSettings = ({ previewUrl }) => {
                     placeholder="Enter designation"
                   />
                 </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Company</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="company_name"
+                    value={dummyUserData.company_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter company"
+                  />
+                </Form.Group>
+                <h6 className="mb-3">Zone Access</h6>
+                <Row>
+                  {zones.map((zone) => {
+                    const isSelected = dummyUserData.company.zone.includes(
+                      zone.id
+                    );
 
-                <Form.Check
-                  type="switch"
-                  id="circle-image-switch"
-                  label="Show user image in circle"
-                  checked={isCircle}
-                  onChange={() => setIsCircle((prev) => !prev)}
+                    return (
+                      <Col key={zone.id} xs={6} sm={4} md={3} className="mb-3">
+                        <Button
+                          variant={
+                            isSelected ? "outline-success" : "outline-secondary"
+                          }
+                          className="w-100 rounded-3 d-flex justify-content-between align-items-center px-3 py-2"
+                          onClick={() => handleZoneClick(zone.id)}
+                        >
+                          <span>{zone.name}</span>
+                          {isSelected && <Check size={18} />}
+                        </Button>
+                      </Col>
+                    );
+                  })}
+                </Row>
+                <ImageStyleSelector
+                  isCircle={isCircle}
+                  setIsCircle={setIsCircle}
                 />
               </Form>
+              <div className="p-3 rounded-3 border">
+                <h6 className="text-primary mb-3 fw-semibold">
+                  <Info size={16} className="me-2" />
+                  Editor Instructions
+                </h6>
+                <ul className="list-unstyled mb-0">
+                  {[
+                    {
+                      Icon: Move,
+                      text: "Drag and drop elements to rearrange their position",
+                    },
+                    // { Icon: Edit3, text: "Click on text elements to edit content inline" },
+                    {
+                      Icon: MousePointer,
+                      text: "Hold Shift key and click to select multiple elements",
+                    },
+                    {
+                      Icon: Settings,
+                      text: "Use the settings panel to modify styles and appearance",
+                    },
+                    // { Icon: Trash2, text: "Press Delete to remove selected elements" },
+                    {
+                      Icon: RotateCcw,
+                      text: "Use Ctrl+Z to undo recent changes",
+                    },
+                    { Icon: Save, text: "Changes are saved automatically" },
+                  ].map((instruction, index) => (
+                    <li
+                      key={index}
+                      className="mb-2 d-flex align-items-center gap-2"
+                    >
+                      <instruction.Icon size={14} className="text-secondary" />
+                      <span>{instruction.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </Col>
-
             {/* Right Column: Canvas Editor */}
-            <Col md={8}>
+            <Col md={6}>
               <IDCardDragAndDrop
                 finalImage={finalImage}
                 userImage={profileImage}
                 orderId="d$NzCUtf"
                 bgRequired={true}
-                zones={[]}
+                zones={zones}
                 userData={dummyUserData}
                 isEdit={true}
                 isCircle={isCircle}

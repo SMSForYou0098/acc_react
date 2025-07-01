@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Col } from "react-bootstrap";
+import {  Col } from "react-bootstrap";
 import { motion, AnimatePresence } from "framer-motion";
 import CanvasSettings from "./CanvasSettings";
 
@@ -104,7 +104,7 @@ const CategoryFilePreview = (props) => {
   );
 
   const renderPlaceholder = () => (
-    <motion.div
+    <div
       key={`${selectedLayoutId || 'layout1'}-${boxWidth}-${boxHeight}`}
       className="d-flex flex-column justify-content-center align-items-center text-muted"
       {...placeholderAnimationProps}
@@ -114,6 +114,8 @@ const CategoryFilePreview = (props) => {
         fontSize: "14px",
         textAlign: "center",
         padding: "10px",
+        // width: `${boxWidth}px`,
+        height: `${boxHeight}px`,
         overflow: "hidden",
       }}
     >
@@ -126,7 +128,7 @@ const CategoryFilePreview = (props) => {
           </small>
         )}
       </motion.div>
-    </motion.div>
+    </div>
   );
 
   const renderNoLayout = () => (

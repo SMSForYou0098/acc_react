@@ -130,8 +130,7 @@ const LayoutSelector = ({ onLayoutSelect, selectedLayout, fileField, onFileReset
                                     >
                                         <Card.Body className="p-3">
                                             <div className="mb-3">
-                                                <div
-                                                    style={{
+                                                <div style={{
                                                         width: `${Math.round(layout.height * 0.6)}px`,
                                                         height: `${Math.round(layout.width * 0.6)}px`,
                                                         backgroundColor: '#d3d3d3',
@@ -146,8 +145,7 @@ const LayoutSelector = ({ onLayoutSelect, selectedLayout, fileField, onFileReset
                                                         color: '#000',
                                                         fontWeight: 'normal'
                                                     }}
-                                                    className="mx-auto"
-                                                >
+                                                    className="mx-auto">
                                                     <div className="mb-1">
                                                         {layout.description}
                                                     </div>
