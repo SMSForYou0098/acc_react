@@ -168,10 +168,10 @@ const GenericEntityManager = ({
 
             // Merge and convert to FormData
             const combinedPayload = {
-              ...formData,
-              userId: UserData.id,
-              ...extraFormData,
-              ...(apiEndpoint === "category" && { layout: layoutData }),            
+                ...formData,
+                userId: UserData.id,
+                ...extraFormData,
+                ...(apiEndpoint === "category" && { layout: layoutData }),
             };
 
             // Remove any preview fields ending in 'PreviewName'
@@ -184,12 +184,12 @@ const GenericEntityManager = ({
 
             const formPayload = new FormData();
             Object.entries(cleanedPayload).forEach(([key, value]) => {
-              formPayload.append(
-                key,
-                typeof value === "object" && key === "layout"
-                  ? JSON.stringify(value)
-                  : value
-              );
+                formPayload.append(
+                    key,
+                    typeof value === "object" && key === "layout"
+                        ? JSON.stringify(value)
+                        : value
+                );
             });
 
 
@@ -475,7 +475,14 @@ const GenericEntityManager = ({
                             </Col>
                             {/* Right side preview */}
                             {entityName === 'Category' &&
-                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} categoryId={modalState?.editId} isCircle={isCircle} setIsCircle={setIsCircle} />
+                                <CategoryFilePreview
+                                    formFields={formFields}
+                                    formData={formData}
+                                    setLayoutData={setLayoutData}
+                                    categoryId={modalState?.editId}
+                                    isCircle={isCircle}
+                                    loading={loading}
+                                    setIsCircle={setIsCircle} />
                             }
                         </Row>
                     </Form>

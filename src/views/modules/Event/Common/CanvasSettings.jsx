@@ -4,23 +4,7 @@ import IDCardDragAndDrop from "../ID Card/IDCardDragAndDrop";
 import profileImage from "../../../../assets/event/stock/profile.jpg";
 import { FetchImageBlob } from "../ID Card/IdCardModal";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  AlignVerticalSpaceAround,
-  Check,
-  Edit3,
-  Info,
-  MapPin,
-  MousePointer,
-  Move,
-  Plus,
-  RotateCcw,
-  Save,
-  Settings,
-  Trash2,
-} from "lucide-react";
+import {AlignCenter,AlignLeft,AlignRight,AlignVerticalSpaceAround,Check,Info,MousePointer,Move,RotateCcw,Save,Settings} from "lucide-react";
 import ImageStyleSelector from "./ImageStyleSelector";
 import axios from "axios";
 
@@ -30,6 +14,7 @@ const CanvasSettings = ({
   categoryId,
   isCircle,
   setIsCircle,
+  disabled
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { api, authToken } = useMyContext();
@@ -199,6 +184,7 @@ const CanvasSettings = ({
           <Button
             variant="outline-primary"
             size="sm"
+            disabled={disabled}
             onClick={() => setShowSettingsModal(true)}
             className="d-flex align-items-center gap-2"
           >
