@@ -474,7 +474,7 @@ const GenericEntityManager = ({
                             </Col>
                             {/* Right side preview */}
                             {entityName === 'Category' &&
-                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} />
+                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} categoryId={modalState?.editId} />
                             }
                         </Row>
                     </Form>

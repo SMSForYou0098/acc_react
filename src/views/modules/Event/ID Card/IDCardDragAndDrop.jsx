@@ -22,6 +22,8 @@ const IDCardDragAndDrop = ({
   print = false,
   animate = true,
   setLayoutData,
+  setShowSettingsModal,
+  categoryId
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -39,30 +41,41 @@ const IDCardDragAndDrop = ({
   const { authToken, ErrorAlert,api } = useMyContext();
   // Fetch layout from API
   useEffect(() => {
-    if (!orderId) {
-      setFetchingLayout(false);
-      return;
-    }
+  if (!orderId || !userData) {
+    setFetchingLayout(false);
+    return;
+  }
 
     const fetchLayout = async () => {
-          try {
-            setFetchingLayout(true);
-            const response = await axios.get(`${api}get-layout/${userData?.id}`, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          });
-            const data = response.data;
-            if (data.status) {
-              const parsedLayout = JSON.parse(data?.layout || '{}');
-              setSavedLayout(parsedLayout);
-            }
-          } catch (error) {
-            // Error handling
-          } finally {
-            setFetchingLayout(false);
-          }
+    try {
+      setFetchingLayout(true);
+      const response = await axios.get(`${api}get-layout/${categoryId || userData?.category_id}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = response.data;
+      if (data.status && data.data) {
+        const parsed = data.data;
+
+        const transformedLayout = {
+          userPhoto: JSON.parse(parsed.user_photo || '{}'),
+          textValue_0: JSON.parse(parsed.text_1 || '{}'),
+          textValue_1: JSON.parse(parsed.text_2 || '{}'),
+          textValue_2: JSON.parse(parsed.text_3 || '{}'),
+          qrCode: JSON.parse(parsed.qr_code || '{}'),
+          zoneGroup: JSON.parse(parsed.zones || '{}'),
         };
+
+        setSavedLayout(transformedLayout);
+      }
+    } catch (error) {
+      console.error("Failed to fetch layout:", error);
+    } finally {
+      setFetchingLayout(false);
+    }
+  };
 
     fetchLayout();
   }, [orderId]);
@@ -71,9 +84,11 @@ const IDCardDragAndDrop = ({
     try {
       setLoading(true);
       setLayoutData(layoutData);
+      setShowSettingsModal(false);
 
     } catch (error) {
-      // Error handling
+      const err = error.response?.data?.message || "Failed to save layout";
+      console.error(err);
     } finally {
       setLoading(false);
     }

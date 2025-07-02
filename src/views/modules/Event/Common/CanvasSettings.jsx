@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import ImageStyleSelector from "./ImageStyleSelector";
 
-const CanvasSettings = ({ previewUrl, setLayoutData }) => {
+const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { api } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
@@ -272,7 +272,9 @@ const CanvasSettings = ({ previewUrl, setLayoutData }) => {
                 userData={dummyUserData}
                 isEdit={true}
                 isCircle={isCircle}
+                setShowSettingsModal={setShowSettingsModal}
                 setLayoutData={setLayoutData}
+                categoryId={categoryId}
               />
             </Col>
           </Row>
