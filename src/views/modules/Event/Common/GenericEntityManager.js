@@ -21,6 +21,7 @@ const GenericEntityManager = ({
     const [pageList, setPageList] = useState();
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({});
+    const [isCircle, setIsCircle] = useState(true); // For image style
     const [modalState, setModalState] = useState({
         show: false,
         editState: false,
@@ -474,7 +475,7 @@ const GenericEntityManager = ({
                             </Col>
                             {/* Right side preview */}
                             {entityName === 'Category' &&
-                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} categoryId={modalState?.editId} />
+                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} categoryId={modalState?.editId} isCircle={isCircle} setIsCircle={setIsCircle} />
                             }
                         </Row>
                     </Form>

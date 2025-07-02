@@ -29,12 +29,14 @@ export const FetchImageBlob = async (api, setLoading, imageUrl, setState) => {
   }
 }
 const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
-  const { api } = useMyContext();
+  const { api, authToken } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [userImage, setUserImage] = useState(null);
-
+const [savedLayout, setSavedLayout] = useState();
+  const [fetchingLayout, setFetchingLayout] = useState(true);
+  const [isCircle, setIsCircle] = useState(false);
 
   useEffect(() => {
     if (show && id) {
@@ -69,6 +71,50 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
     }, 1000);
     onHide();
   };
+
+  useEffect(() => {
+    if (!orderId || !idCardData) {
+      setFetchingLayout(false);
+      return;
+    }
+
+    const fetchLayout = async () => {
+      try {
+        setFetchingLayout(true);
+        const response = await axios.get(
+          `${api}get-layout/${idCardData?.category_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        const data = response.data;
+        if (data.status && data.data) {
+          const parsed = data.data;
+
+          const transformedLayout = {
+            userPhoto: JSON.parse(parsed.user_photo || "{}"),
+            textValue_0: JSON.parse(parsed.text_1 || "{}"),
+            textValue_1: JSON.parse(parsed.text_2 || "{}"),
+            textValue_2: JSON.parse(parsed.text_3 || "{}"),
+            qrCode: JSON.parse(parsed.qr_code || "{}"),
+            zoneGroup: JSON.parse(parsed.zones || "{}"),
+          };
+
+          setSavedLayout(transformedLayout);
+          setIsCircle(transformedLayout.userPhoto?.isCircle || false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch layout:", error);
+      } finally {
+        setFetchingLayout(false);
+      }
+    };
+
+    fetchLayout();
+  }, [orderId]);
   return (
     <Modal show={show} onHide={handleClose} size="lg">
       <Modal.Header closeButton>
@@ -87,6 +133,9 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
           isEdit={false}
           download={true}
           print={true}
+          fetchingLayout={fetchingLayout}
+          savedLayout={savedLayout}
+          isCircle={isCircle}
         />
       </Modal.Body>
     </Modal>

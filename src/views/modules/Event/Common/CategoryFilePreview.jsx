@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import CanvasSettings from "./CanvasSettings";
 
 const CategoryFilePreview = (props) => {
-  const { formFields, formData, setLayoutData, categoryId } = props;
+  const { formFields, formData, setLayoutData, categoryId,isCircle, setIsCircle } = props;
 
   // Constants
   const layoutDimensions = {
@@ -155,7 +155,7 @@ const CategoryFilePreview = (props) => {
   return (
     <Col lg={4} className="d-flex justify-content-center align-items-center">
       <div className="d-flex flex-column align-items-center gap-2 w-100">
-      <CanvasSettings previewUrl={src} setLayoutData={setLayoutData} categoryId={categoryId} />
+      <CanvasSettings previewUrl={src} setLayoutData={setLayoutData} isCircle={isCircle} setIsCircle={setIsCircle} categoryId={categoryId} />
       {renderContent()}
     </div>
     </Col>

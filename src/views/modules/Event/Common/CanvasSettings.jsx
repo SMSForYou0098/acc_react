@@ -11,43 +11,43 @@ import {
   AlignRight,
   AlignVerticalSpaceAround,
   Check,
+  Edit3,
   Info,
+  MapPin,
   MousePointer,
   Move,
+  Plus,
   RotateCcw,
   Save,
   Settings,
+  Trash2,
 } from "lucide-react";
 import ImageStyleSelector from "./ImageStyleSelector";
+import axios from "axios";
 
-const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
+const CanvasSettings = ({
+  previewUrl,
+  setLayoutData,
+  categoryId,
+  isCircle,
+  setIsCircle,
+}) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const { api } = useMyContext();
+  const { api, authToken } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
+  const [savedLayout, setSavedLayout] = useState();
+  const [fetchingLayout, setFetchingLayout] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [isCircle, setIsCircle] = useState(true); // For image style
+  const [showZoneModal, setShowZoneModal] = useState(false);
   const [zones, setZones] = useState([
-    {
-      id: 1,
-      name: "Zone 1",
-    },
-    {
-      id: 2,
-      name: "Zone 2",
-    },
-    {
-      id: 3,
-      name: "Zone 3",
-    },
-    {
-      id: 4,
-      name: "Zone 4",
-    },
-    {
-      id: 5,
-      name: "Zone 5",
-    },
-  ]); // Assuming zones are not used in this component
+    { id: 1, name: "Zone 1" },
+    { id: 2, name: "Zone 2" },
+    { id: 3, name: "Zone 3" },
+    { id: 4, name: "Zone 4" },
+    { id: 5, name: "Zone 5" },
+    { id: 6, name: "Zone 6" },
+  ]);
+  // Assuming zones are not used in this component
   const instruction = [
     {
       Icon: Move,
@@ -97,6 +97,58 @@ const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
     designation: "Your designation",
     company: { zone: [2, 3, 5] },
   });
+
+  const handleAddZone = () => {
+    const nextId = zones.length ? zones[zones.length - 1].id + 1 : 1;
+    const newZone = {
+      id: nextId,
+      name: `Zone ${nextId}`,
+    };
+    setZones([...zones, newZone]);
+  };
+
+  const handleDeleteZone = () => {
+    if (zones.length === 0) return;
+    const updated = [...zones];
+    updated.pop(); // remove last item
+    setZones(updated);
+  };
+
+  useEffect(() => {
+    const fetchLayout = async () => {
+      try {
+        setFetchingLayout(true);
+        const response = await axios.get(`${api}get-layout/${categoryId}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        const data = response.data;
+        if (data.status && data.data) {
+          const parsed = data.data;
+
+          const transformedLayout = {
+            userPhoto: JSON.parse(parsed.user_photo || "{}"),
+            textValue_0: JSON.parse(parsed.text_1 || "{}"),
+            textValue_1: JSON.parse(parsed.text_2 || "{}"),
+            textValue_2: JSON.parse(parsed.text_3 || "{}"),
+            qrCode: JSON.parse(parsed.qr_code || "{}"),
+            zoneGroup: JSON.parse(parsed.zones || "{}"),
+          };
+
+          setSavedLayout(transformedLayout);
+          setIsCircle(transformedLayout.userPhoto?.isCircle || false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch layout:", error);
+      } finally {
+        setFetchingLayout(false);
+      }
+    };
+
+    fetchLayout();
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -218,6 +270,73 @@ const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
                     />
                   </Col>
                 </Row>
+                <Button
+                  style={{ marginBottom: "1rem" }}
+                  onClick={() => setShowZoneModal(true)}
+                >
+                  Manage Zones
+                </Button>
+                <Modal
+  show={showZoneModal}
+  onHide={() => setShowZoneModal(false)}
+  centered
+  size="lg"
+  contentClassName="border-0 shadow-lg rounded-4"
+  dialogClassName="modal-dialog-scrollable"
+>
+  <Modal.Header closeButton className="border-bottom-0 pb-2">
+    <Modal.Title className="fw-bold text-primary">Manage Zone Access</Modal.Title>
+  </Modal.Header>
+
+  <Modal.Body className="pt-0">
+    <div className="d-flex justify-content-between align-items-center mb-4">
+      <h6 className="fw-semibold mb-0 text-dark">Zone Access</h6>
+      <div className="d-flex gap-2">
+        <Button variant="success" size="sm" onClick={handleAddZone}>
+          + Add Zone
+        </Button>
+        <Button
+          variant="outline-danger"
+          size="sm"
+          onClick={handleDeleteZone}
+          disabled={zones.length === 0}
+        >
+          − Delete Zone
+        </Button>
+      </div>
+    </div>
+
+    <Row className="g-3">
+      {zones.map((zone) => {
+        const isSelected = dummyUserData.company.zone.includes(zone.id);
+        return (
+          <Col key={zone.id} xs={6} sm={4} md={3}>
+            <Button
+              variant={isSelected ? "outline-success" : "outline-secondary"}
+              className="w-100 rounded-3 d-flex justify-content-between align-items-center px-3 py-2"
+              onClick={() => handleZoneClick(zone.id)}
+            >
+              <span className="small fw-medium">{zone.name}</span>
+              {isSelected && <Check size={18} />}
+            </Button>
+          </Col>
+        );
+      })}
+    </Row>
+  </Modal.Body>
+
+  <Modal.Footer className="border-top-0 pt-2">
+    <Button
+      variant="secondary"
+      className="px-4"
+      onClick={() => setShowZoneModal(false)}
+    >
+      Close
+    </Button>
+  </Modal.Footer>
+</Modal>
+
+
                 <h6 className="mb-3">Zone Access</h6>
                 <Row>
                   {zones.map((zone) => {
@@ -241,7 +360,6 @@ const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
                     );
                   })}
                 </Row>
-                
               </Form>
               <div className="p-3 rounded-3 border">
                 <h6 className="text-primary mb-3 fw-semibold">
@@ -272,9 +390,12 @@ const CanvasSettings = ({ previewUrl, setLayoutData, categoryId }) => {
                 userData={dummyUserData}
                 isEdit={true}
                 isCircle={isCircle}
+                setIsCircle={setIsCircle}
                 setShowSettingsModal={setShowSettingsModal}
                 setLayoutData={setLayoutData}
                 categoryId={categoryId}
+                savedLayout={savedLayout}
+                fetchingLayout={fetchingLayout}
               />
             </Col>
           </Row>

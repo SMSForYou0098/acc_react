@@ -24,6 +24,8 @@ const IDCardDragAndDrop = ({
   setLayoutData,
   setShowSettingsModal,
   categoryId,
+  fetchingLayout,
+  savedLayout
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -34,72 +36,38 @@ const IDCardDragAndDrop = ({
   const [loading, setLoading] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const [elementPositions, setElementPositions] = useState({});
-  const [savedLayout, setSavedLayout] = useState();
-  const [fetchingLayout, setFetchingLayout] = useState(true);
   const [showIntroAnimation, setShowIntroAnimation] = useState(animate);
   const [animationComplete, setAnimationComplete] = useState(!animate);
   const { authToken, ErrorAlert, api } = useMyContext();
   // Fetch layout from API
-  useEffect(() => {
-    if (!orderId || !userData) {
-      setFetchingLayout(false);
-      return;
-    }
-
-    const fetchLayout = async () => {
-      try {
-        setFetchingLayout(true);
-        const response = await axios.get(
-          `${api}get-layout/${categoryId || userData?.category_id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
-
-        const data = response.data;
-        if (data.status && data.data) {
-          const parsed = data.data;
-
-          const transformedLayout = {
-            userPhoto: JSON.parse(parsed.user_photo || "{}"),
-            textValue_0: JSON.parse(parsed.text_1 || "{}"),
-            textValue_1: JSON.parse(parsed.text_2 || "{}"),
-            textValue_2: JSON.parse(parsed.text_3 || "{}"),
-            qrCode: JSON.parse(parsed.qr_code || "{}"),
-            zoneGroup: JSON.parse(parsed.zones || "{}"),
-          };
-
-          setSavedLayout(transformedLayout);
-        }
-      } catch (error) {
-        console.error("Failed to fetch layout:", error);
-      } finally {
-        setFetchingLayout(false);
-      }
-    };
-
-    fetchLayout();
-  }, [orderId]);
 
   const saveLayoutToBackend = async (layoutData) => {
-    try {
-      setLoading(true);
-      // Get the latest positions directly from canvas before saving
-      const canvas = canvasRef.current?.fabricCanvas;
-      if (canvas) {
-        const currentPositions = trackElementPositions(canvas);
-        setLayoutData(currentPositions);
-        setShowSettingsModal(false);
-      }
-    } catch (error) {
-      const err = error.response?.data?.message || "Failed to save layout";
-      console.error(err);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    const canvas = canvasRef.current?.fabricCanvas;
+    if (canvas) {
+      const currentPositions = trackElementPositions(canvas);
+
+      // ✅ Inject isCircle into userPhoto
+      const updatedLayout = {
+        ...currentPositions,
+        userPhoto: {
+          ...currentPositions.userPhoto,
+          isCircle: isCircle, // <-- pass your boolean here
+        },
+      };
+
+      setLayoutData(updatedLayout); // Save layout with isCircle
+      setShowSettingsModal(false);
     }
-  };
+  } catch (error) {
+    const err = error.response?.data?.message || "Failed to save layout";
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Undo/Redo functionality using refs for better performance
   const saveCanvasState = useCallback((canvas) => {
