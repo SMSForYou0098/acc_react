@@ -203,7 +203,7 @@ const RolePermission = () => {
     setIsEdit(true);
     setOpen(true);
   }
-  const Category = ["User", "Event", "Setting", "Booking", "Scan", "POS", "Agent", "Role", "Permission", "Uncategorized"]
+  const Category = ["User", "Event", "Setting",  "Scan","Role", "Permission", "Uncategorized"]
   const getCategoryFromPermission = (permissionName) => {
     if (permissionName.includes("POS")) return "POS";
     if (permissionName.includes("Profile")) return "User";

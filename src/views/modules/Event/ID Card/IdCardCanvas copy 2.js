@@ -1366,21 +1366,6 @@ const IDCardDragAndDrop = ({
                   finalAngle: positionSource?.angle || 0,
                 });
 
-                // Debug: Log actual rendered sizes
-                console.log("User Photo Creation Debug:", {
-                  originalImageWidth: img.width,
-                  originalImageHeight: img.height,
-                  baseSize: baseSize,
-                  targetBoxSize: boxSize,
-                  calculatedScale: scale,
-                  appliedScaleX: positionSource?.scaleX || scale,
-                  appliedScaleY: positionSource?.scaleY || scale,
-                  finalDisplayWidth:
-                    (positionSource?.scaleX || scale) * img.width,
-                  finalDisplayHeight:
-                    (positionSource?.scaleY || scale) * img.height,
-                  position: `(${finalLeft}, ${finalTop})`,
-                });
 
                 resolve(img);
               },
@@ -1510,26 +1495,6 @@ const IDCardDragAndDrop = ({
                     finalAngle: positionSource?.angle || 0,
                   });
 
-                  // Debug: Log actual QR code sizes
-                  console.log("QR Code Creation Debug:", {
-                    originalQRImageWidth: img.width,
-                    originalQRImageHeight: img.height,
-                    targetQRWidth: qrCodeWidth,
-                    targetQRHeight: qrCodeHeight,
-                    calculatedScaleX: qrCodeWidth / img.width,
-                    calculatedScaleY: qrCodeHeight / img.height,
-                    appliedScaleX:
-                      positionSource?.scaleX || qrCodeWidth / img.width,
-                    appliedScaleY:
-                      positionSource?.scaleY || qrCodeHeight / img.height,
-                    finalDisplayWidth:
-                      (positionSource?.scaleX || qrCodeWidth / img.width) *
-                      img.width,
-                    finalDisplayHeight:
-                      (positionSource?.scaleY || qrCodeHeight / img.height) *
-                      img.height,
-                    position: `(${finalLeft}, ${finalTop})`,
-                  });
 
                   resolve(img);
                 },

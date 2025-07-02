@@ -140,42 +140,35 @@ const VerticalNav = memo(() => {
           title: "Mail Configuration",
           path: "/dashboard/settings/mail",
           minititle: "MC",
-          // permission: "View Mail Config Setting",
+          permission: "View Mail Config Setting",
           icon: <MailIcon />
         },
         {
           title: "SMS Gateway",
           path: "/dashboard/settings/sms-gateway",
           minititle: "SG",
-          // permission: "View SMS Config Setting",
+          permission: "View SMS Config Setting",
           icon: <SmsIcon />
         },
         {
           title: "Whatsapp Config",
           path: "/dashboard/settings/whatsapp-config",
           minititle: "WA",
-          // permission: "View SMS Config Setting",
+          permission: "View Whatsapp Config Setting",
           icon: <FaWhatsapp size={18} />
         },
         {
           title: "Admin Settings",
           path: "/dashboard/settings/admin",
-          // permission: "View Admin Setting",
+          permission: "View Admin Setting",
           icon: <SettingIcon />,
         },
         {
           title: "Category & Zones",
           path: "/dashboard/settings/category",
           minititle: "CTG",
-          // permission: "View Admin Setting",
+          permission: "View Zones & Category",
           icon: <EventIcon />
-        },
-        {
-          title: "Social Media",
-          path: "/dashboard/settings/social-media",
-          minititle: "SM",
-          // permission: "View Admin Setting",
-          icon: <SocialMediaIcon />
         },
       ],
     },

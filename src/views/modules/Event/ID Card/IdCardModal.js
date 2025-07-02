@@ -2,7 +2,6 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Modal } from 'react-bootstrap';
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import IdCardCanvas from './IdCardCanvas';
 import IDCardDragAndDrop from './IDCardDragAndDrop';
 
 export const FetchImageBlob = async (api, setLoading, imageUrl, setState) => {
@@ -84,19 +83,11 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
           orderId={orderId}
           zones={zones}
           userData={idCardData}
+          animate={false}
           isEdit={false}
           download={true}
           print={true}
         />
-        {/* <IdCardCanvas
-          loading={loading}
-          bgRequired={bgRequired}
-          finalImage={finalImage}
-          userImage={userImage}
-          orderId={orderId}
-          zones={zones}
-          userData={idCardData}
-        /> */}
       </Modal.Body>
     </Modal>
   );
