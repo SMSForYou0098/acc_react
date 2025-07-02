@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Save,
   Settings,
+  setLayoutData
 } from "lucide-react";
 import ImageStyleSelector from "./ImageStyleSelector";
 
@@ -272,6 +273,7 @@ const CanvasSettings = ({ previewUrl }) => {
                 userData={dummyUserData}
                 isEdit={true}
                 isCircle={isCircle}
+                setLayoutData={setLayoutData}
               />
             </Col>
           </Row>

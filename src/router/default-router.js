@@ -108,6 +108,14 @@ export const DefaultRouter = [
                 )
               },
               {
+                path: "sub-organizers",
+                element: (
+                  <RoleBasedRedirect>
+                    <Users type="sub-organizer" />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
                 path: "manage/:id",
                 element: <NewUser /> // allowed for 'User'
               },

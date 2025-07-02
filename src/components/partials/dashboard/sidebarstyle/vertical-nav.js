@@ -92,6 +92,12 @@ const VerticalNav = memo(() => {
           permission: "View Organizer",
           minititle: "UL",
         },
+        {
+          title: "SubOrganizer List",
+          path: "/dashboard/users/sub-organizers",
+          permission: "",
+          minititle: "UL",
+        },
       ],
     },
     // Scanner Accordion Menu

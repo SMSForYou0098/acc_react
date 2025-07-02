@@ -256,21 +256,21 @@ export const getActionColumn = (type, handlers) => ({
         icon: <Users2 size={16} />,
         onClick: () => HandleBulkUser(row.id),
         variant: "warning",
-        visible: ["company", "organizer"].includes(type),
+        visible: ["company", "organizer", "sub-organizer"].includes(type),
       },
       {
         tooltip: "Manage User",
         icon: <Settings size={16} />,
         onClick: () => AssignCredit(row.id),
         variant: "primary",
-        visible: true,
+        visible:  !["sub-organizer"].includes(type)
       },
       {
         tooltip: "Delete User",
         icon: <Trash2 size={16} />,
         onClick: () => HandleDelete(row.id),
         variant: "danger",
-        visible: true,
+        visible:  !["sub-organizer"].includes(type) 
       },
     ];
 

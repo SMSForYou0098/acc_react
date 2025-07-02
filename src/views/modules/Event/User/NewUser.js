@@ -229,7 +229,7 @@ const NewUser = memo(() => {
           label: user.user_org || "",
         });
         setSelectedCompany({
-          value: user?.comp_id || user?.company.id || "",
+          value: user?.comp_id || user?.company?.id || "",
           label: user?.company?.company_name  || "",
         });
 
@@ -255,7 +255,7 @@ const NewUser = memo(() => {
 
   const getOrganisers = async (Name = "User") => {
     try {
-      const response = await axios.get(`${api}users-by-role/${Name}`, {
+      const response = await axios.get(`${api}users-by-role/${Name ==='Sub Organizer' ? 'User' : Name}`, {
         headers: {
           Authorization: "Bearer " + authToken,
         },
@@ -417,6 +417,9 @@ const NewUser = memo(() => {
         formData.append("photo", userData?.photo || "");
         formData.append("photoId", userData?.photoId || "");
         formData.append("designation", userData?.designation || "");
+      }
+      if(roleName === "Sub Organizer" && userRole==='Organizer'){
+        formData.append("reporting_user", UserData.id )
       }
 
       // Address fields
@@ -708,7 +711,7 @@ const NewUser = memo(() => {
 
                               {userRole === "Admin" &&
                                 (roleName === "User" ||
-                                  roleName === "Company") && (
+                                  roleName === "Company" || roleName === "Sub Organizer") && (
                                   <Form.Group className="col-md-3 form-group">
                                     <Form.Label>Organizer:</Form.Label>
                                     <Select

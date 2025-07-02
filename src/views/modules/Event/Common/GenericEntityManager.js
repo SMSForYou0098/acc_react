@@ -25,9 +25,9 @@ const GenericEntityManager = ({
         show: false,
         editState: false,
         editId: '',
-        isLoading: false
+        isLoading: false,
     });
-
+    const [layoutData, setLayoutData] = useState({});
     // Initialize form data from form fields configuration
     useEffect(() => {
         const initialFormData = {};
@@ -167,9 +167,10 @@ const GenericEntityManager = ({
 
             // Merge and convert to FormData
             const combinedPayload = {
-                ...formData,
-                userId: UserData.id,
-                ...extraFormData,
+              ...formData,
+              userId: UserData.id,
+              ...extraFormData,
+              ...(apiEndpoint === "category" && { layout: layoutData }),            
             };
 
             // Remove any preview fields ending in 'PreviewName'
@@ -182,8 +183,14 @@ const GenericEntityManager = ({
 
             const formPayload = new FormData();
             Object.entries(cleanedPayload).forEach(([key, value]) => {
-                formPayload.append(key, value);
+              formPayload.append(
+                key,
+                typeof value === "object" && key === "layout"
+                  ? JSON.stringify(value)
+                  : value
+              );
             });
+
 
 
             const apiUrl = modalState.editState
@@ -200,6 +207,7 @@ const GenericEntityManager = ({
             if (response.data.status) {
                 await fetchEntities();
                 handleClose();
+                setLayoutData({}); // Reset layout data after submission
                 successAlert(
                     response.data?.message ||
                     `${entityName} ${modalState.editState ? 'updated' : 'created'} successfully`
@@ -466,7 +474,7 @@ const GenericEntityManager = ({
                             </Col>
                             {/* Right side preview */}
                             {entityName === 'Category' &&
-                                <CategoryFilePreview formFields={formFields} formData={formData} />
+                                <CategoryFilePreview formFields={formFields} formData={formData} setLayoutData={setLayoutData} />
                             }
                         </Row>
                     </Form>
