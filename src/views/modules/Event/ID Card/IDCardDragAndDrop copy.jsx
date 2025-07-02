@@ -7,6 +7,7 @@ import { capitalize } from "lodash";
 import { QRCodeCanvas } from "qrcode.react";
 import { UploadToAPIBackground } from "./utils/CanvasUtils";
 import { useMyContext } from "../../../../Context/MyContextProvider";
+import axios from "axios";
 
 const IDCardDragAndDrop = ({
   finalImage,
@@ -15,11 +16,14 @@ const IDCardDragAndDrop = ({
   userImage,
   zones = [],
   bgRequired = true,
-  api,
   isEdit = true,
   isCircle = false,
   download = false,
   print = false,
+  animate = true,
+  setLayoutData,
+  setShowSettingsModal,
+  categoryId
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -32,30 +36,46 @@ const IDCardDragAndDrop = ({
   const [elementPositions, setElementPositions] = useState({});
   const [savedLayout, setSavedLayout] = useState();
   const [fetchingLayout, setFetchingLayout] = useState(true);
-  const [showIntroAnimation, setShowIntroAnimation] = useState(true);
-  const [animationComplete, setAnimationComplete] = useState(false);
-  const { authToken, ErrorAlert } = useMyContext();
+  const [showIntroAnimation, setShowIntroAnimation] = useState(animate);
+  const [animationComplete, setAnimationComplete] = useState(!animate);
+  const { authToken, ErrorAlert,api } = useMyContext();
   // Fetch layout from API
   useEffect(() => {
-    if (!orderId) {
-      setFetchingLayout(false);
-      return;
-    }
+  if (!orderId || !userData) {
+    setFetchingLayout(false);
+    return;
+  }
 
     const fetchLayout = async () => {
-      try {
-        setFetchingLayout(true);
-        const response = await fetch(`/api/layouts/${orderId}`);
-        const data = await response.json();
-        if (data.success) {
-          setSavedLayout(data?.layout);
-        }
-      } catch (error) {
-        console.error("Failed to fetch layout:", error);
-      } finally {
-        setFetchingLayout(false);
+    try {
+      setFetchingLayout(true);
+      const response = await axios.get(`${api}get-layout/${categoryId || userData?.category_id}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = response.data;
+      if (data.status && data.data) {
+        const parsed = data.data;
+
+        const transformedLayout = {
+          userPhoto: JSON.parse(parsed.user_photo || '{}'),
+          textValue_0: JSON.parse(parsed.text_1 || '{}'),
+          textValue_1: JSON.parse(parsed.text_2 || '{}'),
+          textValue_2: JSON.parse(parsed.text_3 || '{}'),
+          qrCode: JSON.parse(parsed.qr_code || '{}'),
+          zoneGroup: JSON.parse(parsed.zones || '{}'),
+        };
+
+        setSavedLayout(transformedLayout);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch layout:", error);
+    } finally {
+      setFetchingLayout(false);
+    }
+  };
 
     fetchLayout();
   }, [orderId]);
@@ -63,9 +83,12 @@ const IDCardDragAndDrop = ({
   const saveLayoutToBackend = async (layoutData) => {
     try {
       setLoading(true);
-      console.log("Layout saved:", layoutData);
+      setLayoutData(layoutData);
+      setShowSettingsModal(false);
+
     } catch (error) {
-      console.error("Failed to save layout:", error);
+      const err = error.response?.data?.message || "Failed to save layout";
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -540,11 +563,6 @@ const IDCardDragAndDrop = ({
         const baseSize = Math.max(originalWidth, originalHeight);
         const correctScale = boxSize / baseSize;
         userPhotoScales = { scaleX: correctScale, scaleY: correctScale };
-
-        console.log("User Photo Reset Debug (Fallback):", {
-          usingFallbackCalculation: true,
-          correctScale: correctScale,
-        });
       }
 
       // For QR code - use stored original target scales
@@ -557,23 +575,6 @@ const IDCardDragAndDrop = ({
           scaleX: qrCodeObj.originalTargetScaleX,
           scaleY: qrCodeObj.originalTargetScaleY,
         };
-
-        console.log("QR Code Reset Debug:", {
-          currentWidth: qrCodeObj.width,
-          currentHeight: qrCodeObj.height,
-          currentScaleX: qrCodeObj.scaleX,
-          currentScaleY: qrCodeObj.scaleY,
-          storedOriginalTargetScaleX: qrCodeObj.originalTargetScaleX,
-          storedOriginalTargetScaleY: qrCodeObj.originalTargetScaleY,
-          willResetToScaleX: qrCodeObj.originalTargetScaleX,
-          willResetToScaleY: qrCodeObj.originalTargetScaleY,
-          currentDisplayWidth: qrCodeObj.width * qrCodeObj.scaleX,
-          currentDisplayHeight: qrCodeObj.height * qrCodeObj.scaleY,
-          targetDisplayWidth:
-            qrCodeObj.originalQRImageWidth * qrCodeObj.originalTargetScaleX,
-          targetDisplayHeight:
-            qrCodeObj.originalQRImageHeight * qrCodeObj.originalTargetScaleY,
-        });
       } else if (qrCodeObj) {
         // Fallback calculation if original data not available
         const targetWidth = 100;
@@ -583,12 +584,6 @@ const IDCardDragAndDrop = ({
         const correctScaleX = targetWidth / originalWidth;
         const correctScaleY = targetHeight / originalHeight;
         qrCodeScales = { scaleX: correctScaleX, scaleY: correctScaleY };
-
-        console.log("QR Code Reset Debug (Fallback):", {
-          usingFallbackCalculation: true,
-          correctScaleX: correctScaleX,
-          correctScaleY: correctScaleY,
-        });
       }
 
       return { userPhotoScales, qrCodeScales };
@@ -936,7 +931,7 @@ const IDCardDragAndDrop = ({
 
         if (isMounted) setCanvasReady(true);
       } catch (err) {
-        console.error("Canvas initialization error:", err);
+        // Canvas initialization error
       }
     };
 
@@ -1534,7 +1529,7 @@ const IDCardDragAndDrop = ({
 
             canvas.add(qrImg);
           } catch (err) {
-            console.error("QR Code Error:", err);
+            // QR Code Error
           }
         }
 
@@ -1656,7 +1651,7 @@ const IDCardDragAndDrop = ({
           }, 300);
         }
       } catch (err) {
-        console.error("Content update error:", err);
+        // Content update error
       }
     };
 
@@ -1705,16 +1700,7 @@ const IDCardDragAndDrop = ({
       ) {
         throw new Error("Invalid dataURL generated");
       }
-
-      console.log(
-        `Successfully generated image with ${actualMultiplier}x multiplier`
-      );
     } catch (highQualityError) {
-      console.warn(
-        "High quality export failed, trying lower quality:",
-        highQualityError
-      );
-
       // Fallback to 4x multiplier
       try {
         actualMultiplier = 4;
@@ -1731,14 +1717,7 @@ const IDCardDragAndDrop = ({
         ) {
           throw new Error("Invalid dataURL generated with 4x multiplier");
         }
-
-        console.log(`Generated image with ${actualMultiplier}x multiplier`);
       } catch (mediumQualityError) {
-        console.warn(
-          "Medium quality export failed, trying standard quality:",
-          mediumQualityError
-        );
-
         // Final fallback to 2x multiplier
         actualMultiplier = 2;
         dataURL = canvas.toDataURL({
@@ -1750,8 +1729,6 @@ const IDCardDragAndDrop = ({
         if (!dataURL || !dataURL.startsWith("data:image")) {
           throw new Error("Failed to generate any valid image");
         }
-
-        console.log(`Generated image with ${actualMultiplier}x multiplier`);
       }
     }
 
@@ -1802,20 +1779,15 @@ const IDCardDragAndDrop = ({
       })
         .then((result) => {
           if (result) {
-            console.log(
-              `${qualityLabel.toUpperCase()} ID Card uploaded to server successfully`
-            );
+            // Upload successful
           }
         })
         .catch((error) => {
-          console.warn("Background upload failed:", error);
+          // Background upload failed
         });
 
-      console.log(
-        `${qualityLabel.toUpperCase()} ID Card downloaded successfully (${actualMultiplier}x quality)`
-      );
+      // Download completed successfully
     } catch (err) {
-      console.error("Download failed:", err);
       alert("Download failed. Please try again.");
     } finally {
       setLoading(false);
@@ -1891,17 +1863,11 @@ const IDCardDragAndDrop = ({
             printWindow.print();
           };
           img.onerror = () => {
-            console.error("Image failed to load for printing");
             alert("Failed to load image for printing.");
           };
         }
       };
-
-      console.log(
-        `Print canvas opened successfully (${actualMultiplier}x quality)`
-      );
     } catch (err) {
-      console.error("Print process failed:", err);
       alert("Printing failed. Please try again.");
     } finally {
       setLoading(false);
@@ -1943,7 +1909,7 @@ const IDCardDragAndDrop = ({
             </Button>
           </>
         )}
-        {/* {download && ( */}
+        {download && (
         <Button
           variant="primary"
           onClick={downloadCanvas}
@@ -1954,8 +1920,8 @@ const IDCardDragAndDrop = ({
           {loading ? "Please Wait..." : "Download 4K"}
           <ArrowBigDownDash size={16} />
         </Button>
-        {/* )} */}
-        {/* {print && ( */}
+        )}
+        {print && (
           <Button
             variant="secondary"
             onClick={printCanvas}
@@ -1965,7 +1931,7 @@ const IDCardDragAndDrop = ({
             Print
             <Printer size={16} />
           </Button>
-        {/* )} */}
+        )}
       </div>
 
       <div

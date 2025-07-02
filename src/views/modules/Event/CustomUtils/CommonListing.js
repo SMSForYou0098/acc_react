@@ -12,8 +12,6 @@ const CommonListing = (props) => {
             <Row>
                 <Col sm="12">
                     <Card>
-                        <Row className="d-flex align-items-center">
-                        </Row>
                         <Card.Body className="px-0">
                             <CustomDataTable
                                 tile={tile}
