@@ -129,6 +129,7 @@ const Users = memo(({ type }) => {
       fetchCompanies();
       // Only fetch users if company is selected for Sub Organizers
       if (selectedCompanyId) {
+        setUsers([]);
         GetUsers();
       }
     } else {
