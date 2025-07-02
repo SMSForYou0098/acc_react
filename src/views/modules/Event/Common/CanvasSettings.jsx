@@ -17,11 +17,10 @@ import {
   RotateCcw,
   Save,
   Settings,
-  setLayoutData
 } from "lucide-react";
 import ImageStyleSelector from "./ImageStyleSelector";
 
-const CanvasSettings = ({ previewUrl }) => {
+const CanvasSettings = ({ previewUrl, setLayoutData }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { api } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);

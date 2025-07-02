@@ -73,7 +73,7 @@ const IDCardDragAndDrop = ({
     try {
       setLoading(true);
       console.log("Layout saved:", layoutData);
-            setLayoutData(layoutData);
+      setLayoutData(layoutData);
 
     } catch (error) {
       console.error("Failed to save layout:", error);
