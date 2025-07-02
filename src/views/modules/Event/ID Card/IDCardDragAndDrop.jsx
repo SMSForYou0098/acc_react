@@ -23,7 +23,7 @@ const IDCardDragAndDrop = ({
   animate = true,
   setLayoutData,
   setShowSettingsModal,
-  categoryId
+  categoryId,
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -38,44 +38,47 @@ const IDCardDragAndDrop = ({
   const [fetchingLayout, setFetchingLayout] = useState(true);
   const [showIntroAnimation, setShowIntroAnimation] = useState(animate);
   const [animationComplete, setAnimationComplete] = useState(!animate);
-  const { authToken, ErrorAlert,api } = useMyContext();
+  const { authToken, ErrorAlert, api } = useMyContext();
   // Fetch layout from API
   useEffect(() => {
-  if (!orderId || !userData) {
-    setFetchingLayout(false);
-    return;
-  }
+    if (!orderId || !userData) {
+      setFetchingLayout(false);
+      return;
+    }
 
     const fetchLayout = async () => {
-    try {
-      setFetchingLayout(true);
-      const response = await axios.get(`${api}get-layout/${categoryId || userData?.category_id}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      try {
+        setFetchingLayout(true);
+        const response = await axios.get(
+          `${api}get-layout/${categoryId || userData?.category_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
 
-      const data = response.data;
-      if (data.status && data.data) {
-        const parsed = data.data;
+        const data = response.data;
+        if (data.status && data.data) {
+          const parsed = data.data;
 
-        const transformedLayout = {
-          userPhoto: JSON.parse(parsed.user_photo || '{}'),
-          textValue_0: JSON.parse(parsed.text_1 || '{}'),
-          textValue_1: JSON.parse(parsed.text_2 || '{}'),
-          textValue_2: JSON.parse(parsed.text_3 || '{}'),
-          qrCode: JSON.parse(parsed.qr_code || '{}'),
-          zoneGroup: JSON.parse(parsed.zones || '{}'),
-        };
+          const transformedLayout = {
+            userPhoto: JSON.parse(parsed.user_photo || "{}"),
+            textValue_0: JSON.parse(parsed.text_1 || "{}"),
+            textValue_1: JSON.parse(parsed.text_2 || "{}"),
+            textValue_2: JSON.parse(parsed.text_3 || "{}"),
+            qrCode: JSON.parse(parsed.qr_code || "{}"),
+            zoneGroup: JSON.parse(parsed.zones || "{}"),
+          };
 
-        setSavedLayout(transformedLayout);
+          setSavedLayout(transformedLayout);
+        }
+      } catch (error) {
+        console.error("Failed to fetch layout:", error);
+      } finally {
+        setFetchingLayout(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch layout:", error);
-    } finally {
-      setFetchingLayout(false);
-    }
-  };
+    };
 
     fetchLayout();
   }, [orderId]);
@@ -83,9 +86,13 @@ const IDCardDragAndDrop = ({
   const saveLayoutToBackend = async (layoutData) => {
     try {
       setLoading(true);
-      setLayoutData(layoutData);
-      setShowSettingsModal(false);
-
+      // Get the latest positions directly from canvas before saving
+      const canvas = canvasRef.current?.fabricCanvas;
+      if (canvas) {
+        const currentPositions = trackElementPositions(canvas);
+        setLayoutData(currentPositions);
+        setShowSettingsModal(false);
+      }
     } catch (error) {
       const err = error.response?.data?.message || "Failed to save layout";
       console.error(err);
@@ -460,7 +467,7 @@ const IDCardDragAndDrop = ({
   const trackElementPositions = useCallback((canvas) => {
     const positions = {};
     canvas.getObjects().forEach((obj) => {
-      if (obj.name && !obj.name.includes("CenterGuide")) {
+      if (obj.name && !obj.name.includes("Guide")) {
         positions[obj.name] = {
           left: obj.left,
           top: obj.top,
@@ -469,6 +476,12 @@ const IDCardDragAndDrop = ({
           angle: obj.angle,
           originX: obj.originX,
           originY: obj.originY,
+          width: obj.width, // Add width
+          height: obj.height, // Add height
+          fontSize: obj.fontSize, // For text objects
+          fontFamily: obj.fontFamily,
+          fontWeight: obj.fontWeight,
+          fill: obj.fill, // For text color
         };
       }
     });
@@ -809,19 +822,37 @@ const IDCardDragAndDrop = ({
         isDraggingRef.current = false;
         if (isEdit) {
           hideCenterGuides(canvasInstance);
-          // Save state after drag is complete
-          setTimeout(() => {
-            trackElementPositions(canvasInstance);
-            saveCanvasState(canvasInstance);
-          }, 10);
+          // Immediately track positions and save state
+          trackElementPositions(canvasInstance);
+          saveCanvasState(canvasInstance);
         }
       });
 
       // Handle other modifications (scaling, rotating, etc.)
-      canvasInstance.on("object:modified", () => {
-        if (!isDraggingRef.current) {
+      canvasInstance.on("object:modified", (e) => {
+        if (e.transform) {
+          // Only proceed if there was an actual transformation
           trackElementPositions(canvasInstance);
           saveCanvasState(canvasInstance);
+        }
+      });
+
+      // Handle object moving - show guides
+      canvasInstance.on("object:moving", (e) => {
+        isDraggingRef.current = true;
+        if (isEdit) {
+          showCenterGuides(canvasInstance, e.target);
+        }
+      });
+      // Update positions when mouse up occurs (even if object didn't move)
+      canvasInstance.on("mouse:up", () => {
+        if (isDraggingRef.current && isEdit) {
+          trackElementPositions(canvasInstance);
+          saveCanvasState(canvasInstance);
+        }
+        isDraggingRef.current = false;
+        if (isEdit) {
+          hideCenterGuides(canvasInstance);
         }
       });
 
@@ -1242,9 +1273,11 @@ const IDCardDragAndDrop = ({
               break;
           }
 
+          // Inside the keyboard event handler
           if (shouldUpdate) {
             activeObject.setCoords();
             canvas.renderAll();
+            // Add this line to ensure positions are tracked after keyboard operations
             trackElementPositions(canvas);
             saveCanvasState(canvas);
           }
@@ -1301,25 +1334,25 @@ const IDCardDragAndDrop = ({
                   // Disable image smoothing for sharper rendering
                   imageSmoothingEnabled: false,
                   // Use high-quality scaling
-                  resampleMethod: 'lanczos',
+                  resampleMethod: "lanczos",
                 });
 
                 const circleCenterX = 200;
                 const circleCenterY = 235;
                 const circleRadius = 70;
                 const boxSize = circleRadius * 2.5 * 1.05;
-                
+
                 // Use higher resolution calculation for better quality
                 const baseSize = Math.max(img.width, img.height);
                 const scale = boxSize / baseSize;
-                
+
                 // Apply minimum resolution threshold to maintain quality
                 const minResolution = 400; // Minimum pixel dimension
                 const currentMaxDimension = Math.max(
-                  img.width * scale, 
+                  img.width * scale,
                   img.height * scale
                 );
-                
+
                 let qualityScale = scale;
                 if (currentMaxDimension < minResolution) {
                   qualityScale = scale * (minResolution / currentMaxDimension);
@@ -1386,10 +1419,10 @@ const IDCardDragAndDrop = ({
 
                 resolve(img);
               },
-              { 
+              {
                 crossOrigin: "anonymous",
                 // Request high-quality image loading
-                quality: 'high'
+                quality: "high",
               }
             );
           });
@@ -1464,10 +1497,10 @@ const IDCardDragAndDrop = ({
         if (orderId) {
           try {
             // Generate QR code at much higher resolution for better quality
-            const qrDataURL = await QRCode.toDataURL(orderId, { 
+            const qrDataURL = await QRCode.toDataURL(orderId, {
               margin: 0.5,
               width: 400, // 4x higher resolution (was 100, now 400)
-              errorCorrectionLevel: 'H' // Highest error correction for better quality
+              errorCorrectionLevel: "H", // Highest error correction for better quality
             });
             const qrImg = await new Promise((resolve) => {
               fabric.Image.fromURL(
@@ -1910,16 +1943,16 @@ const IDCardDragAndDrop = ({
           </>
         )}
         {download && (
-        <Button
-          variant="primary"
-          onClick={downloadCanvas}
-          disabled={!canvasReady || loading}
-          className="d-flex align-items-center gap-2"
-          title="Download ID Card in 4K quality"
-        >
-          {loading ? "Please Wait..." : "Download 4K"}
-          <ArrowBigDownDash size={16} />
-        </Button>
+          <Button
+            variant="primary"
+            onClick={downloadCanvas}
+            disabled={!canvasReady || loading}
+            className="d-flex align-items-center gap-2"
+            title="Download ID Card in 4K quality"
+          >
+            {loading ? "Please Wait..." : "Download 4K"}
+            <ArrowBigDownDash size={16} />
+          </Button>
         )}
         {print && (
           <Button
