@@ -275,6 +275,7 @@ const CanvasSettings = ({
                 >
                   Manage Zones
                 </Button>
+
                 <Modal
   show={showZoneModal}
   onHide={() => setShowZoneModal(false)}
