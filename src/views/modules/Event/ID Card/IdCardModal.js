@@ -84,7 +84,9 @@ const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
           orderId={orderId}
           zones={zones}
           userData={idCardData}
-          isEdit={true}
+          isEdit={false}
+          download={true}
+          print={true}
         />
         {/* <IdCardCanvas
           loading={loading}

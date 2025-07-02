@@ -7,6 +7,7 @@ import { capitalize } from "lodash";
 import { QRCodeCanvas } from "qrcode.react";
 import { UploadToAPIBackground } from "./utils/CanvasUtils";
 import { useMyContext } from "../../../../Context/MyContextProvider";
+import axios from "axios";
 
 const IDCardDragAndDrop = ({
   finalImage,
@@ -15,11 +16,11 @@ const IDCardDragAndDrop = ({
   userImage,
   zones = [],
   bgRequired = true,
-  api,
   isEdit = true,
   isCircle = false,
   download = false,
   print = false,
+  setLayoutData,
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -34,7 +35,7 @@ const IDCardDragAndDrop = ({
   const [fetchingLayout, setFetchingLayout] = useState(true);
   const [showIntroAnimation, setShowIntroAnimation] = useState(true);
   const [animationComplete, setAnimationComplete] = useState(false);
-  const { authToken, ErrorAlert } = useMyContext();
+  const { authToken, ErrorAlert,api } = useMyContext();
   // Fetch layout from API
   useEffect(() => {
     if (!orderId) {
@@ -43,19 +44,24 @@ const IDCardDragAndDrop = ({
     }
 
     const fetchLayout = async () => {
-      try {
-        setFetchingLayout(true);
-        const response = await fetch(`/api/layouts/${orderId}`);
-        const data = await response.json();
-        if (data.success) {
-          setSavedLayout(data?.layout);
-        }
-      } catch (error) {
-        console.error("Failed to fetch layout:", error);
-      } finally {
-        setFetchingLayout(false);
-      }
-    };
+          try {
+            setFetchingLayout(true);
+            const response = await axios.get(`${api}get-layout/${userData?.id}`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+            const data = response.data;
+            if (data.status) {
+              const parsedLayout = JSON.parse(data?.layout || '{}');
+              setSavedLayout(parsedLayout);
+            }
+          } catch (error) {
+            console.error("Failed to fetch layout:", error);
+          } finally {
+            setFetchingLayout(false);
+          }
+        };
 
     fetchLayout();
   }, [orderId]);
@@ -64,6 +70,8 @@ const IDCardDragAndDrop = ({
     try {
       setLoading(true);
       console.log("Layout saved:", layoutData);
+      setLayoutData(layoutData);
+
     } catch (error) {
       console.error("Failed to save layout:", error);
     } finally {
