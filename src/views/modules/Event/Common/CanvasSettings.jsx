@@ -6,7 +6,6 @@ import { FetchImageBlob } from "../ID Card/IdCardModal";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import {
   AlignCenter,
-  AlignHorizontalSpaceAround,
   AlignLeft,
   AlignRight,
   AlignVerticalSpaceAround,

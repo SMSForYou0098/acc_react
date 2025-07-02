@@ -10,9 +10,10 @@ import { capitalize } from "lodash";
 import ZonePreviewModal from "./ZonePreviewModal";
 import { baseColumns, defaultColumnProps, getActionColumn, getConditionalColumns } from "./UserColumns";
 import BulkUser from "./BulkUser";
+import CompanySelectionCard from "./CompanySelectionCard";
 
 const Users = memo(({ type }) => {
-  const { api, formatDateTime, successAlert, authToken, ErrorAlert, UserData } = useMyContext();
+  const { api, formatDateTime, successAlert, authToken, ErrorAlert, UserData, userRole } = useMyContext();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [zones, setZones] = useState([]);
@@ -28,6 +29,8 @@ const Users = memo(({ type }) => {
   const [bgRequired, setBgRequired] = useState(false);
   const [showIdModal, setShowIdModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
 
   const handleShowIdCardModal = (id) => {
     setSelectedId(id);
@@ -68,7 +71,9 @@ const Users = memo(({ type }) => {
   const GetUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const url = `${api}users?type=${type}`;
+      // if user role is sub-organizer, pass selected company id
+      const companyId = userRole === "Sub Organizer" && selectedCompanyId ? `&company_id=${selectedCompanyId}` : "";
+      const url = `${api}users?type=${type}${companyId}`;
       const res = await axios.get(url, {
         headers: {
           Authorization: "Bearer " + authToken,
@@ -98,12 +103,38 @@ const Users = memo(({ type }) => {
     } finally {
       setLoading(false);
     }
-  }, [authToken, api, type]);
+  }, [authToken, api, type, userRole, selectedCompanyId]);
+
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const response = await axios.get(`${api}companies/${UserData?.id}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        }
+      });
+      if (response.data.status) {
+        setCompanies(response.data.data);
+      } else {
+        setCompanies([]);
+      }
+    } catch (error) {
+      const err = error.response?.data?.message || error.response?.data?.error || `Failed to fetch companies`;
+      ErrorAlert(err);
+    }
+  }, [api, authToken, ErrorAlert]);
 
   useEffect(() => {
     fetchZones();
-    GetUsers();
-  }, [fetchZones, GetUsers]);
+    if (userRole === "Sub Organizer") {
+      fetchCompanies();
+      // Only fetch users if company is selected for Sub Organizers
+      if (selectedCompanyId) {
+        GetUsers();
+      }
+    } else {
+      GetUsers();
+    }
+  }, [fetchZones, GetUsers, fetchCompanies, userRole, selectedCompanyId]);
 
   const AssignCredit = useCallback((id) => {
     navigate(`/dashboard/users/manage/${id}`);
@@ -181,7 +212,7 @@ const Users = memo(({ type }) => {
         ErrorAlert(err.response?.data?.message || "An error occurred");
       }
     }
-  }, [authToken, ErrorAlert, GetUsers, successAlert, api]);
+  }, [authToken, ErrorAlert, GetUsers, successAlert, api, UserData.id]);
 
   const handlePreview = useCallback(async (id) => {
     try {
@@ -231,8 +262,9 @@ const Users = memo(({ type }) => {
     });
   }, [setBgRequired, setShowIdModal]);
 
-
-
+  const handleCompanyChange = (e) => {
+    setSelectedCompanyId(e.target.value);
+  };
 
   const columns = [
     ...baseColumns,
@@ -249,6 +281,7 @@ const Users = memo(({ type }) => {
       AssignCredit,
       HandleDelete,
       HandleBulkUser,
+      userRole
     }),
   ];
 
@@ -261,15 +294,40 @@ const Users = memo(({ type }) => {
         selectedUser={selectedUser}
         handleApproval={handleApproval}
       />
-      <CommonListing
-        tile={`${capitalize(type)} List`}
-        data={users}
-        loading={loading}
-        columns={columns}
-        searchPlaceholder="Search users..."
-        bookingLink={"/dashboard/users/new"}
-        ButtonLable={"New User"}
-      />
+
+      {userRole === "Sub Organizer" && (
+        <CompanySelectionCard
+          companies={companies}
+          selectedCompanyId={selectedCompanyId}
+          onCompanyChange={handleCompanyChange}
+          loading={loading}
+        />
+      )}
+
+      {userRole === "Sub Organizer" && !selectedCompanyId ? (
+        <div className="card text-center">
+          <div className="card-body">
+            <div className="mb-3">
+              <i className="fas fa-building fa-3x text-muted"></i>
+            </div>
+            <h5 className="card-title text-muted">Select Company First</h5>
+            <p className="card-text text-muted">
+              Please select a company from the dropdown above to view the users list.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <CommonListing
+          tile={`${capitalize(type)} List`}
+          data={users}
+          loading={loading}
+          columns={columns}
+          searchPlaceholder="Search users..."
+          bookingLink={"/dashboard/users/new"}
+          ButtonLable={"New User"}
+        />
+      )}
+
       <BulkUser
         show={showBulkUserModal}
         setShow={setShowBulkUserModal}

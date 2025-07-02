@@ -198,7 +198,6 @@ export const getConditionalColumns = (type, zones, setZoneModal, handleApproval)
       }
     );
   }
-
   if (["organizer", "company"].includes(type)) {
     // Company name is now in baseColumns, so this conditional block can be removed or used for other columns specific to organizer/company
   }
@@ -223,7 +222,7 @@ export const getConditionalColumns = (type, zones, setZoneModal, handleApproval)
   return conditionalCols;
 };
 
-export const getActionColumn = (type, handlers) => ({
+export const getActionColumn = (type, handlers,userRole) => ({
   dataField: "action",
   text: "Action",
   formatter: (cell, row) => {
@@ -242,7 +241,7 @@ export const getActionColumn = (type, handlers) => ({
         onClick: () => handleShowIdCardModal(row.id),
         variant: "secondary",
         isDisabled: row?.status !== 1 || parseInt(row.approval_status) !== 1,
-        visible: type === "user",
+        visible: type === "user" || userRole === 'Sub Organizer',
       },
       {
         tooltip: "Preview User",
@@ -263,14 +262,14 @@ export const getActionColumn = (type, handlers) => ({
         icon: <Settings size={16} />,
         onClick: () => AssignCredit(row.id),
         variant: "primary",
-        visible:  !["sub-organizer"].includes(type)
+        visible:  userRole === 'Admin' || userRole === 'Organizer' || userRole === 'Company',
       },
       {
         tooltip: "Delete User",
         icon: <Trash2 size={16} />,
         onClick: () => HandleDelete(row.id),
         variant: "danger",
-        visible:  !["sub-organizer"].includes(type) 
+        visible:  userRole === 'Admin' || userRole === 'Organizer' 
       },
     ];
 
