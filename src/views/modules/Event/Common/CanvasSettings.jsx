@@ -5,6 +5,11 @@ import profileImage from "../../../../assets/event/stock/profile.jpg";
 import { FetchImageBlob } from "../ID Card/IdCardModal";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import {
+  AlignCenter,
+  AlignHorizontalSpaceAround,
+  AlignLeft,
+  AlignRight,
+  AlignVerticalSpaceAround,
   Check,
   Info,
   MousePointer,
@@ -43,6 +48,49 @@ const CanvasSettings = ({ previewUrl }) => {
       name: "Zone 5",
     },
   ]); // Assuming zones are not used in this component
+  const instruction = [
+    {
+      Icon: Move,
+      text: "Drag and drop elements to rearrange their position",
+    },
+    {
+      Icon: MousePointer,
+      text: "Hold Shift key and click to select multiple elements",
+    },
+    {
+      Icon: Settings,
+      text: "Use the settings panel to modify styles and appearance",
+    },
+    {
+      Icon: RotateCcw,
+      text: "Use Ctrl+Z to undo recent changes",
+    },
+    {
+      Icon: Save,
+      text: "Changes are saved automatically",
+    },
+    {
+      Icon: AlignCenter,
+      text: "Press Ctrl+E to horizontally center selected element",
+    },
+    {
+      Icon: AlignVerticalSpaceAround,
+      text: "Press Ctrl+Q to vertically center selected element",
+    },
+    // {
+    //   Icon: AlignHorizontalSpaceAround,
+    //   text: "Press Ctrl+W to center selected element both horizontally and vertically",
+    // },
+    {
+      Icon: AlignLeft,
+      text: "Press Ctrl+1 to align selected element to left third line",
+    },
+    {
+      Icon: AlignRight,
+      text: "Press Ctrl+2 to align selected element to right third line",
+    },
+  ];
+
   const [dummyUserData, setDummyUserData] = useState({
     name: "Your name",
     company_name: "Your Company name",
@@ -126,36 +174,50 @@ const CanvasSettings = ({ previewUrl }) => {
             <Col md={6}>
               <h5>User Info</h5>
               <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    value={dummyUserData.name}
-                    onChange={handleInputChange}
-                    placeholder="Enter name"
-                  />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Designation</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="designation"
-                    value={dummyUserData.designation}
-                    onChange={handleInputChange}
-                    placeholder="Enter designation"
-                  />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Company</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="company_name"
-                    value={dummyUserData.company_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter company"
-                  />
-                </Form.Group>
+                <Row>
+                  <Col xs={6} className="mb-3">
+                    <Form.Group className="mb-3">
+                      <Form.Label>Name</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="name"
+                        value={dummyUserData.name}
+                        onChange={handleInputChange}
+                        placeholder="Enter name"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6} className="mb-3">
+                    <Form.Group className="mb-3">
+                      <Form.Label>Designation</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="designation"
+                        value={dummyUserData.designation}
+                        onChange={handleInputChange}
+                        placeholder="Enter designation"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6} className="mb-3">
+                    <Form.Group className="mb-3">
+                      <Form.Label>Company</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="company_name"
+                        value={dummyUserData.company_name}
+                        onChange={handleInputChange}
+                        placeholder="Enter company"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} className="mb-3">
+                    <ImageStyleSelector
+                      isCircle={isCircle}
+                      setIsCircle={setIsCircle}
+                    />
+                  </Col>
+                </Row>
                 <h6 className="mb-3">Zone Access</h6>
                 <Row>
                   {zones.map((zone) => {
@@ -172,17 +234,14 @@ const CanvasSettings = ({ previewUrl }) => {
                           className="w-100 rounded-3 d-flex justify-content-between align-items-center px-3 py-2"
                           onClick={() => handleZoneClick(zone.id)}
                         >
-                          <span>{zone.name}</span>
+                          <span className="small">{zone.name}</span>
                           {isSelected && <Check size={18} />}
                         </Button>
                       </Col>
                     );
                   })}
                 </Row>
-                <ImageStyleSelector
-                  isCircle={isCircle}
-                  setIsCircle={setIsCircle}
-                />
+                
               </Form>
               <div className="p-3 rounded-3 border">
                 <h6 className="text-primary mb-3 fw-semibold">
@@ -190,27 +249,7 @@ const CanvasSettings = ({ previewUrl }) => {
                   Editor Instructions
                 </h6>
                 <ul className="list-unstyled mb-0">
-                  {[
-                    {
-                      Icon: Move,
-                      text: "Drag and drop elements to rearrange their position",
-                    },
-                    // { Icon: Edit3, text: "Click on text elements to edit content inline" },
-                    {
-                      Icon: MousePointer,
-                      text: "Hold Shift key and click to select multiple elements",
-                    },
-                    {
-                      Icon: Settings,
-                      text: "Use the settings panel to modify styles and appearance",
-                    },
-                    // { Icon: Trash2, text: "Press Delete to remove selected elements" },
-                    {
-                      Icon: RotateCcw,
-                      text: "Use Ctrl+Z to undo recent changes",
-                    },
-                    { Icon: Save, text: "Changes are saved automatically" },
-                  ].map((instruction, index) => (
+                  {instruction.map((instruction, index) => (
                     <li
                       key={index}
                       className="mb-2 d-flex align-items-center gap-2"

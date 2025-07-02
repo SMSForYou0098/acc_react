@@ -1560,7 +1560,6 @@ const IDCardDragAndDrop = ({
   const downloadCanvas = async () => {
     setLoading(true);
     try {
-      // Create high-definition canvas for 4K quality download
       const hdCanvas = await CreateHDCanvas({
         finalImage,
         userImage,
@@ -1568,34 +1567,19 @@ const IDCardDragAndDrop = ({
         orderId,
         zones,
         bgRequired,
-        // Get current element positions from the canvas for accurate rendering
-        elementPositions: trackElementPositions(canvasRef.current.fabricCanvas),
-        isCircle,
-        // Enhanced quality settings for 4K
-        qualityMultiplier: 4, // 4x multiplier for 4K quality
-        dpi: 300, // High DPI for print quality
       });
 
-      // Render the canvas to ensure all elements are properly displayed
       hdCanvas.renderAll();
-      
-      // Generate high-quality data URL
-      const dataURL = hdCanvas.toDataURL({ 
-        format: "png", 
-        quality: 1.0, // Maximum quality
-        multiplier: 2 // Additional multiplier for extra sharpness
-      });
+      const dataURL = hdCanvas.toDataURL({ format: "png", quality: 1.0 });
 
-      // Create and trigger download
       const link = document.createElement("a");
       link.href = dataURL;
-      link.download = `id_card_4k_${orderId || userData?.name?.replace(/\s+/g, '_') || "id"}.png`;
+      link.download = `id_card_${orderId || "id"}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // Optional: Upload to API in background
-      const filename = `id_card_4k_${orderId || userData?.name?.replace(/\s+/g, '_') || "id"}.png`;
+      const filename = `id_card_${orderId || "id"}.png`;
       UploadToAPIBackground({
         dataURL,
         filename,
@@ -1604,20 +1588,13 @@ const IDCardDragAndDrop = ({
         authToken,
       }).then((result) => {
         if (result) {
-          console.log('4K ID Card uploaded to server successfully');
+          // toast.success('ID Card uploaded to server');
         }
-      }).catch((error) => {
-        console.warn('Background upload failed:', error);
       });
 
-      // Clean up the HD canvas
       hdCanvas.dispose();
-      
-      console.log('4K ID Card downloaded successfully');
-      
     } catch (err) {
-      console.error("4K Download failed:", err);
-      alert("4K Download failed. Please try again.");
+      alert("HD Download failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1633,9 +1610,6 @@ const IDCardDragAndDrop = ({
         orderId,
         zones,
         bgRequired,
-        // Pass current element positions for consistent rendering
-        elementPositions: trackElementPositions(canvasRef.current.fabricCanvas),
-        isCircle,
       });
 
       await HandlePrint({
@@ -1691,18 +1665,17 @@ const IDCardDragAndDrop = ({
             </Button>
           </>
         )}
-        {/* {download && ( */}
+        {download && (
           <Button
             variant="primary"
             onClick={downloadCanvas}
             disabled={!canvasReady || loading}
             className="d-flex align-items-center gap-2"
-            title="Download ID Card in 4K quality"
           >
-            {loading ? "Please Wait..." : "Download 4K"}
+            {loading ? "Please Wait..." : "Download"}
             <ArrowBigDownDash size={16} />
           </Button>
-        {/* )} */}
+        )}
         {print && (
           <Button
             variant="secondary"
