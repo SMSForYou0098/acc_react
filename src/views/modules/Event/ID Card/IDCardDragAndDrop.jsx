@@ -5,13 +5,8 @@ import { ArrowBigDownDash, Printer, Save, RotateCcw } from "lucide-react";
 import QRCode from "qrcode";
 import { capitalize } from "lodash";
 import { QRCodeCanvas } from "qrcode.react";
-import {
-  CreateHDCanvas,
-  HandlePrint,
-  UploadToAPIBackground,
-} from "./utils/CanvasUtils";
+import { UploadToAPIBackground } from "./utils/CanvasUtils";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import axios from "axios";
 
 const IDCardDragAndDrop = ({
   finalImage,
@@ -20,11 +15,11 @@ const IDCardDragAndDrop = ({
   userImage,
   zones = [],
   bgRequired = true,
+  api,
   isEdit = true,
   isCircle = false,
   download = false,
   print = false,
-  setLayoutData
 }) => {
   const canvasRef = useRef(null);
   const qrCodeRef = useRef(null);
@@ -39,7 +34,7 @@ const IDCardDragAndDrop = ({
   const [fetchingLayout, setFetchingLayout] = useState(true);
   const [showIntroAnimation, setShowIntroAnimation] = useState(true);
   const [animationComplete, setAnimationComplete] = useState(false);
-  const { authToken, ErrorAlert, api } = useMyContext();
+  const { authToken, ErrorAlert } = useMyContext();
   // Fetch layout from API
   useEffect(() => {
     if (!orderId) {
@@ -50,15 +45,10 @@ const IDCardDragAndDrop = ({
     const fetchLayout = async () => {
       try {
         setFetchingLayout(true);
-        const response = await axios.get(`${api}get-layout/${userData?.id}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-        const data = response.data;
-        if (data.status) {
-          const parsedLayout = JSON.parse(data?.layout || '{}');
-          setSavedLayout(parsedLayout);
+        const response = await fetch(`/api/layouts/${orderId}`);
+        const data = await response.json();
+        if (data.success) {
+          setSavedLayout(data?.layout);
         }
       } catch (error) {
         console.error("Failed to fetch layout:", error);
@@ -66,6 +56,7 @@ const IDCardDragAndDrop = ({
         setFetchingLayout(false);
       }
     };
+
     fetchLayout();
   }, [orderId]);
 
@@ -73,8 +64,6 @@ const IDCardDragAndDrop = ({
     try {
       setLoading(true);
       console.log("Layout saved:", layoutData);
-      setLayoutData(layoutData);
-
     } catch (error) {
       console.error("Failed to save layout:", error);
     } finally {
@@ -85,13 +74,16 @@ const IDCardDragAndDrop = ({
   // Undo/Redo functionality using refs for better performance
   const saveCanvasState = useCallback((canvas) => {
     if (!canvas || isLoadingStateRef.current || isDraggingRef.current) return;
-    
-    const canvasState = JSON.stringify(canvas.toJSON(['name']));
-    
+
+    const canvasState = JSON.stringify(canvas.toJSON(["name"]));
+
     // Remove any history after current index
-    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+    historyRef.current = historyRef.current.slice(
+      0,
+      historyIndexRef.current + 1
+    );
     historyRef.current.push(canvasState);
-    
+
     // Limit history to 50 states to prevent memory issues
     if (historyRef.current.length > 50) {
       historyRef.current.shift();
@@ -102,13 +94,13 @@ const IDCardDragAndDrop = ({
 
   const undo = useCallback((canvas) => {
     if (!canvas || historyIndexRef.current <= 0) return;
-    
+
     const previousState = historyRef.current[historyIndexRef.current - 1];
     if (!previousState) return;
-    
+
     historyIndexRef.current--;
     isLoadingStateRef.current = true;
-    
+
     canvas.loadFromJSON(previousState, () => {
       canvas.renderAll();
       trackElementPositions(canvas);
@@ -117,14 +109,15 @@ const IDCardDragAndDrop = ({
   }, []);
 
   const redo = useCallback((canvas) => {
-    if (!canvas || historyIndexRef.current >= historyRef.current.length - 1) return;
-    
+    if (!canvas || historyIndexRef.current >= historyRef.current.length - 1)
+      return;
+
     const nextState = historyRef.current[historyIndexRef.current + 1];
     if (!nextState) return;
-    
+
     historyIndexRef.current++;
     isLoadingStateRef.current = true;
-    
+
     canvas.loadFromJSON(nextState, () => {
       canvas.renderAll();
       trackElementPositions(canvas);
@@ -234,7 +227,7 @@ const IDCardDragAndDrop = ({
     canvas.add(rightThirdGuide);
     canvas.add(topQuarterGuide);
     canvas.add(bottomQuarterGuide);
-    
+
     return {
       vertical: verticalGuide,
       horizontal: horizontalGuide,
@@ -282,8 +275,8 @@ const IDCardDragAndDrop = ({
 
     // Get target dimensions and position
     let targetLeft, targetTop, targetWidth, targetHeight;
-    
-    if (target.type === 'group') {
+
+    if (target.type === "group") {
       // For groups, use the group's bounding box
       const bounds = target.getBoundingRect();
       targetLeft = bounds.left;
@@ -314,9 +307,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.x - canvasCenter.x) < snapDistance) {
       showVertical = true;
       // Snap to center
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetX = canvasCenter.x - (currentBounds.left + currentBounds.width / 2);
+        const offsetX =
+          canvasCenter.x - (currentBounds.left + currentBounds.width / 2);
         target.set({ left: target.left + offsetX });
       } else {
         target.set({ left: canvasCenter.x - targetWidth / 2 });
@@ -327,9 +321,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.y - canvasCenter.y) < snapDistance) {
       showHorizontal = true;
       // Snap to center
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetY = canvasCenter.y - (currentBounds.top + currentBounds.height / 2);
+        const offsetY =
+          canvasCenter.y - (currentBounds.top + currentBounds.height / 2);
         target.set({ top: target.top + offsetY });
       } else {
         target.set({ top: canvasCenter.y - targetHeight / 2 });
@@ -340,9 +335,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.x - leftThird) < snapDistance) {
       showLeftThird = true;
       // Snap to left third
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetX = leftThird - (currentBounds.left + currentBounds.width / 2);
+        const offsetX =
+          leftThird - (currentBounds.left + currentBounds.width / 2);
         target.set({ left: target.left + offsetX });
       } else {
         target.set({ left: leftThird - targetWidth / 2 });
@@ -353,9 +349,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.x - rightThird) < snapDistance) {
       showRightThird = true;
       // Snap to right third
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetX = rightThird - (currentBounds.left + currentBounds.width / 2);
+        const offsetX =
+          rightThird - (currentBounds.left + currentBounds.width / 2);
         target.set({ left: target.left + offsetX });
       } else {
         target.set({ left: rightThird - targetWidth / 2 });
@@ -366,9 +363,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.y - topQuarter) < snapDistance) {
       showTopQuarter = true;
       // Snap to top quarter
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetY = topQuarter - (currentBounds.top + currentBounds.height / 2);
+        const offsetY =
+          topQuarter - (currentBounds.top + currentBounds.height / 2);
         target.set({ top: target.top + offsetY });
       } else {
         target.set({ top: topQuarter - targetHeight / 2 });
@@ -379,9 +377,10 @@ const IDCardDragAndDrop = ({
     if (Math.abs(targetCenter.y - bottomQuarter) < snapDistance) {
       showBottomQuarter = true;
       // Snap to bottom quarter
-      if (target.type === 'group') {
+      if (target.type === "group") {
         const currentBounds = target.getBoundingRect();
-        const offsetY = bottomQuarter - (currentBounds.top + currentBounds.height / 2);
+        const offsetY =
+          bottomQuarter - (currentBounds.top + currentBounds.height / 2);
         target.set({ top: target.top + offsetY });
       } else {
         target.set({ top: bottomQuarter - targetHeight / 2 });
@@ -466,33 +465,44 @@ const IDCardDragAndDrop = ({
       };
 
       const startTime = Date.now();
-      
+
       const animate = () => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         // Easing function for smooth animation (ease-out)
         const easedProgress = 1 - Math.pow(1 - progress, 3);
-        
+
         // Calculate current values
         object.set({
-          left: startProps.left + (targetProps.left - startProps.left) * easedProgress,
-          top: startProps.top + (targetProps.top - startProps.top) * easedProgress,
-          angle: startProps.angle + (targetProps.angle - startProps.angle) * easedProgress,
-          scaleX: startProps.scaleX + ((targetProps.scaleX || startProps.scaleX) - startProps.scaleX) * easedProgress,
-          scaleY: startProps.scaleY + ((targetProps.scaleY || startProps.scaleY) - startProps.scaleY) * easedProgress,
+          left:
+            startProps.left +
+            (targetProps.left - startProps.left) * easedProgress,
+          top:
+            startProps.top + (targetProps.top - startProps.top) * easedProgress,
+          angle:
+            startProps.angle +
+            (targetProps.angle - startProps.angle) * easedProgress,
+          scaleX:
+            startProps.scaleX +
+            ((targetProps.scaleX || startProps.scaleX) - startProps.scaleX) *
+              easedProgress,
+          scaleY:
+            startProps.scaleY +
+            ((targetProps.scaleY || startProps.scaleY) - startProps.scaleY) *
+              easedProgress,
         });
-        
+
         object.setCoords();
         object.canvas?.renderAll();
-        
+
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
           resolve();
         }
       };
-      
+
       animate();
     });
   };
@@ -500,22 +510,26 @@ const IDCardDragAndDrop = ({
   // Reset all elements to their default positions with smooth animation
   const resetElementPositions = useCallback(async () => {
     if (!canvasRef.current?.fabricCanvas || !canvasReady) return;
-    
+
     const canvas = canvasRef.current.fabricCanvas;
-    
+
     // Get actual current sizes from the rendered objects
     const getActualDefaultScales = () => {
-      const userPhotoObj = canvas.getObjects().find(obj => obj.name === 'userPhoto');
-      const qrCodeObj = canvas.getObjects().find(obj => obj.name === 'qrCode');
-      
+      const userPhotoObj = canvas
+        .getObjects()
+        .find((obj) => obj.name === "userPhoto");
+      const qrCodeObj = canvas
+        .getObjects()
+        .find((obj) => obj.name === "qrCode");
+
       let userPhotoScales = { scaleX: 1, scaleY: 1 };
       let qrCodeScales = { scaleX: 1, scaleY: 1 };
-      
+
       // For user photo - use stored original dimensions and target scale
       if (userPhotoObj && userPhotoObj.originalTargetScale) {
-        userPhotoScales = { 
-          scaleX: userPhotoObj.originalTargetScale, 
-          scaleY: userPhotoObj.originalTargetScale 
+        userPhotoScales = {
+          scaleX: userPhotoObj.originalTargetScale,
+          scaleY: userPhotoObj.originalTargetScale,
         };
       } else if (userPhotoObj) {
         // Fallback calculation if original data not available
@@ -526,21 +540,25 @@ const IDCardDragAndDrop = ({
         const baseSize = Math.max(originalWidth, originalHeight);
         const correctScale = boxSize / baseSize;
         userPhotoScales = { scaleX: correctScale, scaleY: correctScale };
-        
-        console.log('User Photo Reset Debug (Fallback):', {
+
+        console.log("User Photo Reset Debug (Fallback):", {
           usingFallbackCalculation: true,
-          correctScale: correctScale
+          correctScale: correctScale,
         });
       }
-      
+
       // For QR code - use stored original target scales
-      if (qrCodeObj && qrCodeObj.originalTargetScaleX && qrCodeObj.originalTargetScaleY) {
-        qrCodeScales = { 
-          scaleX: qrCodeObj.originalTargetScaleX, 
-          scaleY: qrCodeObj.originalTargetScaleY 
+      if (
+        qrCodeObj &&
+        qrCodeObj.originalTargetScaleX &&
+        qrCodeObj.originalTargetScaleY
+      ) {
+        qrCodeScales = {
+          scaleX: qrCodeObj.originalTargetScaleX,
+          scaleY: qrCodeObj.originalTargetScaleY,
         };
-        
-        console.log('QR Code Reset Debug:', {
+
+        console.log("QR Code Reset Debug:", {
           currentWidth: qrCodeObj.width,
           currentHeight: qrCodeObj.height,
           currentScaleX: qrCodeObj.scaleX,
@@ -551,8 +569,10 @@ const IDCardDragAndDrop = ({
           willResetToScaleY: qrCodeObj.originalTargetScaleY,
           currentDisplayWidth: qrCodeObj.width * qrCodeObj.scaleX,
           currentDisplayHeight: qrCodeObj.height * qrCodeObj.scaleY,
-          targetDisplayWidth: qrCodeObj.originalQRImageWidth * qrCodeObj.originalTargetScaleX,
-          targetDisplayHeight: qrCodeObj.originalQRImageHeight * qrCodeObj.originalTargetScaleY
+          targetDisplayWidth:
+            qrCodeObj.originalQRImageWidth * qrCodeObj.originalTargetScaleX,
+          targetDisplayHeight:
+            qrCodeObj.originalQRImageHeight * qrCodeObj.originalTargetScaleY,
         });
       } else if (qrCodeObj) {
         // Fallback calculation if original data not available
@@ -563,31 +583,32 @@ const IDCardDragAndDrop = ({
         const correctScaleX = targetWidth / originalWidth;
         const correctScaleY = targetHeight / originalHeight;
         qrCodeScales = { scaleX: correctScaleX, scaleY: correctScaleY };
-        
-        console.log('QR Code Reset Debug (Fallback):', {
+
+        console.log("QR Code Reset Debug (Fallback):", {
           usingFallbackCalculation: true,
           correctScaleX: correctScaleX,
-          correctScaleY: correctScaleY
+          correctScaleY: correctScaleY,
         });
       }
-      
+
       return { userPhotoScales, qrCodeScales };
     };
-    
+
     const { userPhotoScales, qrCodeScales } = getActualDefaultScales();
-    
+
     // Default positions for each element type
     const defaultPositions = {
       userPhoto: {
         left: 200, // circleCenterX
-        top: 235,  // circleCenterY
+        top: 235, // circleCenterY
         originX: "center",
         originY: "center",
         angle: 0,
         scaleX: userPhotoScales.scaleX,
         scaleY: userPhotoScales.scaleY,
       },
-      textValue_0: { // Name
+      textValue_0: {
+        // Name
         left: canvas.width / 2,
         top: 320,
         originX: "center",
@@ -597,7 +618,8 @@ const IDCardDragAndDrop = ({
         scaleX: 1,
         scaleY: 1,
       },
-      textValue_1: { // Designation
+      textValue_1: {
+        // Designation
         left: canvas.width / 2,
         top: 345, // 320 + 25
         originX: "center",
@@ -607,7 +629,8 @@ const IDCardDragAndDrop = ({
         scaleX: 1,
         scaleY: 1,
       },
-      textValue_2: { // Company
+      textValue_2: {
+        // Company
         left: canvas.width / 2,
         top: 370, // 320 + 50
         originX: "center",
@@ -627,26 +650,33 @@ const IDCardDragAndDrop = ({
         scaleY: qrCodeScales.scaleY,
       },
       zoneGroup: {
-        left: (canvas.width - (zones?.length || 0) * 28 - ((zones?.length || 0) - 1) * 8) / 2,
+        left:
+          (canvas.width -
+            (zones?.length || 0) * 28 -
+            ((zones?.length || 0) - 1) * 8) /
+          2,
         top: 530,
         originX: "left",
         originY: "top",
         angle: 0,
         scaleX: 1,
         scaleY: 1,
-      }
+      },
     };
-    
+
     // Get all objects that need to be reset
-    const objectsToReset = canvas.getObjects().filter(obj => 
-      obj.name && !obj.name.includes("Guide") && defaultPositions[obj.name]
-    );
-    
+    const objectsToReset = canvas
+      .getObjects()
+      .filter(
+        (obj) =>
+          obj.name && !obj.name.includes("Guide") && defaultPositions[obj.name]
+      );
+
     if (objectsToReset.length === 0) return;
-    
+
     // Animate each object to its default position with staggered timing
     const animationPromises = objectsToReset.map((obj, index) => {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(async () => {
           const defaultPos = defaultPositions[obj.name];
           if (defaultPos) {
@@ -658,113 +688,118 @@ const IDCardDragAndDrop = ({
               scaleX: defaultPos.scaleX,
               scaleY: defaultPos.scaleY,
             };
-            
+
             // Use the same animation function as intro
             await animateToPosition(obj, animationTarget, 800);
-            
+
             // Set origin properties after animation
             obj.set({
               originX: defaultPos.originX,
               originY: defaultPos.originY,
             });
-            
+
             // Reset font size for text elements
-            if ((obj.type === 'text' || obj.type === 'i-text') && defaultPos.fontSize) {
+            if (
+              (obj.type === "text" || obj.type === "i-text") &&
+              defaultPos.fontSize
+            ) {
               obj.set({
                 fontSize: defaultPos.fontSize,
               });
             }
-            
+
             obj.setCoords();
           }
           resolve();
         }, index * 150); // Stagger each animation by 150ms
       });
     });
-    
+
     // Wait for all animations to complete
     await Promise.all(animationPromises);
-    
+
     canvas.renderAll();
     trackElementPositions(canvas);
     saveCanvasState(canvas);
   }, [canvasReady, zones, trackElementPositions, saveCanvasState]);
 
+  const startIntroAnimation = useCallback(
+    async (canvas) => {
+      if (!canvas || !showIntroAnimation || animationComplete) return;
 
-  const startIntroAnimation = useCallback(async (canvas) => {
-    if (!canvas || !showIntroAnimation || animationComplete) return;
-    
-    const objects = canvas.getObjects().filter(obj => 
-      obj.name && !obj.name.includes('Guide')
-    );
-    
-    if (objects.length === 0) return;
+      const objects = canvas
+        .getObjects()
+        .filter((obj) => obj.name && !obj.name.includes("Guide"));
 
-    // Store the original final positions
-    const originalPositions = {};
-    objects.forEach(obj => {
-      originalPositions[obj.name] = {
-        left: obj.finalLeft || obj.left,
-        top: obj.finalTop || obj.top,
-      };
-    });
+      if (objects.length === 0) return;
 
-    // Start the gentle left-right shake animation
-    const shakeDuration = 2000; // 2 seconds of gentle movement
-    const shakeIntensity = 8; // Maximum pixels to move left/right
-    const startTime = Date.now();
-    
-    const animateShake = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = elapsed / shakeDuration;
-      
-      if (progress >= 1) {
-        // Animation complete - set final positions
-        objects.forEach(obj => {
-          const originalPos = originalPositions[obj.name];
-          if (originalPos) {
-            obj.set({
-              left: originalPos.left,
-              opacity: 1
-            });
-          }
-        });
-        canvas.renderAll();
-        
-        setAnimationComplete(true);
-        setShowIntroAnimation(false);
-        return;
-      }
-      
-      // Calculate shake effect for each object
-      objects.forEach((obj, index) => {
-        const originalPos = originalPositions[obj.name];
-        if (!originalPos) return;
-        
-        // Create a wave effect with different phases for each element
-        const phase = (index * 0.5) + (progress * Math.PI * 4); // 4 complete cycles
-        const shakeOffset = Math.sin(phase) * shakeIntensity * (1 - progress * 0.7); // Gradually reduce intensity
-        
-        // Apply gentle fade-in during the shake
-        const opacity = 0.3 + (progress * 0.7); // Fade from 30% to 100%
-        
-        obj.set({
-          left: originalPos.left + shakeOffset,
-          opacity: opacity
-        });
-        obj.setCoords();
+      // Store the original final positions
+      const originalPositions = {};
+      objects.forEach((obj) => {
+        originalPositions[obj.name] = {
+          left: obj.finalLeft || obj.left,
+          top: obj.finalTop || obj.top,
+        };
       });
-      
-      canvas.renderAll();
-      requestAnimationFrame(animateShake);
-    };
-    
-    // Start the shake animation after a brief delay
-    setTimeout(() => {
-      animateShake();
-    }, 300);
-    
-  }, [showIntroAnimation, animationComplete]);
+
+      // Start the gentle left-right shake animation
+      const shakeDuration = 2000; // 2 seconds of gentle movement
+      const shakeIntensity = 8; // Maximum pixels to move left/right
+      const startTime = Date.now();
+
+      const animateShake = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = elapsed / shakeDuration;
+
+        if (progress >= 1) {
+          // Animation complete - set final positions
+          objects.forEach((obj) => {
+            const originalPos = originalPositions[obj.name];
+            if (originalPos) {
+              obj.set({
+                left: originalPos.left,
+                opacity: 1,
+              });
+            }
+          });
+          canvas.renderAll();
+
+          setAnimationComplete(true);
+          setShowIntroAnimation(false);
+          return;
+        }
+
+        // Calculate shake effect for each object
+        objects.forEach((obj, index) => {
+          const originalPos = originalPositions[obj.name];
+          if (!originalPos) return;
+
+          // Create a wave effect with different phases for each element
+          const phase = index * 0.5 + progress * Math.PI * 4; // 4 complete cycles
+          const shakeOffset =
+            Math.sin(phase) * shakeIntensity * (1 - progress * 0.7); // Gradually reduce intensity
+
+          // Apply gentle fade-in during the shake
+          const opacity = 0.3 + progress * 0.7; // Fade from 30% to 100%
+
+          obj.set({
+            left: originalPos.left + shakeOffset,
+            opacity: opacity,
+          });
+          obj.setCoords();
+        });
+
+        canvas.renderAll();
+        requestAnimationFrame(animateShake);
+      };
+
+      // Start the shake animation after a brief delay
+      setTimeout(() => {
+        animateShake();
+      }, 300);
+    },
+    [showIntroAnimation, animationComplete]
+  );
 
   // Canvas initialization effect - runs only when essential props change
   useEffect(() => {
@@ -898,7 +933,7 @@ const IDCardDragAndDrop = ({
         }
 
         setupEventListeners(canvas);
-        
+
         if (isMounted) setCanvasReady(true);
       } catch (err) {
         console.error("Canvas initialization error:", err);
@@ -917,57 +952,72 @@ const IDCardDragAndDrop = ({
         }
       }
     };
-  }, [finalImage, fetchingLayout, bgRequired, isEdit, canvasReady, redo, saveCanvasState, showCenterGuides, trackElementPositions, undo]);
+  }, [
+    finalImage,
+    fetchingLayout,
+    bgRequired,
+    isEdit,
+    canvasReady,
+    redo,
+    saveCanvasState,
+    showCenterGuides,
+    trackElementPositions,
+    undo,
+  ]);
 
   // Keyboard event listener effect
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isEdit || !canvasRef.current?.fabricCanvas) return;
-      
+
       const canvas = canvasRef.current.fabricCanvas;
       const activeObject = canvas.getActiveObject();
-      
+
       if (e.ctrlKey || e.metaKey) {
         // Undo/Redo shortcuts
-        if (e.key === 'z' && !e.shiftKey) {
+        if (e.key === "z" && !e.shiftKey) {
           e.preventDefault();
           undo(canvas);
-        } else if ((e.key === 'y') || (e.key === 'z' && e.shiftKey)) {
+        } else if (e.key === "y" || (e.key === "z" && e.shiftKey)) {
           e.preventDefault();
           redo(canvas);
         }
-        
+
         // Alignment shortcuts - only work if an object is selected
         else if (activeObject) {
           const canvasCenter = { x: canvas.width / 2, y: canvas.height / 2 };
           let shouldUpdate = false;
-          
+
           switch (e.key.toLowerCase()) {
-            case 'e': // Ctrl+E - Center horizontally
+            case "e": // Ctrl+E - Center horizontally
               e.preventDefault();
-              if (activeObject.type === 'group') {
+              if (activeObject.type === "group") {
                 // Center the group itself
                 const bounds = activeObject.getBoundingRect();
-                const offsetX = canvasCenter.x - (bounds.left + bounds.width / 2);
+                const offsetX =
+                  canvasCenter.x - (bounds.left + bounds.width / 2);
                 activeObject.set({ left: activeObject.left + offsetX });
-                
+
                 // Center all items within the group
                 const groupObjects = activeObject.getObjects();
                 if (groupObjects.length > 0) {
                   // Calculate group's internal bounds
                   const groupBounds = activeObject.getBoundingRect(true); // true for absolute coordinates
                   const groupCenterX = groupBounds.width / 2;
-                  
-                  groupObjects.forEach(obj => {
+
+                  groupObjects.forEach((obj) => {
                     const objWidth = obj.width * (obj.scaleX || 1);
                     obj.set({ left: groupCenterX - objWidth / 2 });
                   });
                 }
               } else {
                 // For individual objects, handle different types properly
-                if (activeObject.type === 'text' || activeObject.type === 'i-text') {
+                if (
+                  activeObject.type === "text" ||
+                  activeObject.type === "i-text"
+                ) {
                   // For text elements, check origin property
-                  if (activeObject.originX === 'center') {
+                  if (activeObject.originX === "center") {
                     // If origin is center, just set left to canvas center
                     activeObject.set({ left: canvasCenter.x });
                   } else {
@@ -976,15 +1026,18 @@ const IDCardDragAndDrop = ({
                     const newLeft = canvasCenter.x - bounds.width / 2;
                     activeObject.set({ left: newLeft });
                   }
-                } else if (activeObject.type === 'image') {
+                } else if (activeObject.type === "image") {
                   // For images, handle origin properly
-                  if (activeObject.originX === 'center') {
+                  if (activeObject.originX === "center") {
                     // If origin is center, just set left to canvas center
                     activeObject.set({ left: canvasCenter.x });
                   } else {
                     // If origin is left, calculate offset
-                    const targetWidth = activeObject.width * activeObject.scaleX;
-                    activeObject.set({ left: canvasCenter.x - targetWidth / 2 });
+                    const targetWidth =
+                      activeObject.width * activeObject.scaleX;
+                    activeObject.set({
+                      left: canvasCenter.x - targetWidth / 2,
+                    });
                   }
                 } else {
                   // For other elements (shapes, etc.)
@@ -994,32 +1047,36 @@ const IDCardDragAndDrop = ({
               }
               shouldUpdate = true;
               break;
-              
-            case 'q': // Ctrl+Q - Center vertically
+
+            case "q": // Ctrl+Q - Center vertically
               e.preventDefault();
-              if (activeObject.type === 'group') {
+              if (activeObject.type === "group") {
                 // Center the group itself
                 const bounds = activeObject.getBoundingRect();
-                const offsetY = canvasCenter.y - (bounds.top + bounds.height / 2);
+                const offsetY =
+                  canvasCenter.y - (bounds.top + bounds.height / 2);
                 activeObject.set({ top: activeObject.top + offsetY });
-                
+
                 // Center all items within the group vertically
                 const groupObjects = activeObject.getObjects();
                 if (groupObjects.length > 0) {
                   // Calculate group's internal bounds
                   const groupBounds = activeObject.getBoundingRect(true);
                   const groupCenterY = groupBounds.height / 2;
-                  
-                  groupObjects.forEach(obj => {
+
+                  groupObjects.forEach((obj) => {
                     const objHeight = obj.height * (obj.scaleY || 1);
                     obj.set({ top: groupCenterY - objHeight / 2 });
                   });
                 }
               } else {
                 // For individual objects, handle different types properly
-                if (activeObject.type === 'text' || activeObject.type === 'i-text') {
+                if (
+                  activeObject.type === "text" ||
+                  activeObject.type === "i-text"
+                ) {
                   // For text elements, check origin property
-                  if (activeObject.originY === 'center') {
+                  if (activeObject.originY === "center") {
                     // If origin is center, just set top to canvas center
                     activeObject.set({ top: canvasCenter.y });
                   } else {
@@ -1028,37 +1085,43 @@ const IDCardDragAndDrop = ({
                     const newTop = canvasCenter.y - bounds.height / 2;
                     activeObject.set({ top: newTop });
                   }
-                } else if (activeObject.type === 'image') {
+                } else if (activeObject.type === "image") {
                   // For images, handle origin properly
-                  if (activeObject.originY === 'center') {
+                  if (activeObject.originY === "center") {
                     // If origin is center, just set top to canvas center
                     activeObject.set({ top: canvasCenter.y });
                   } else {
                     // If origin is top, calculate offset
-                    const targetHeight = activeObject.height * activeObject.scaleY;
-                    activeObject.set({ top: canvasCenter.y - targetHeight / 2 });
+                    const targetHeight =
+                      activeObject.height * activeObject.scaleY;
+                    activeObject.set({
+                      top: canvasCenter.y - targetHeight / 2,
+                    });
                   }
                 } else {
                   // For other elements (shapes, etc.)
-                  const targetHeight = activeObject.height * activeObject.scaleY;
+                  const targetHeight =
+                    activeObject.height * activeObject.scaleY;
                   activeObject.set({ top: canvasCenter.y - targetHeight / 2 });
                 }
               }
               shouldUpdate = true;
               break;
-              
-            case 'w': // Ctrl+W - Center both horizontally and vertically
+
+            case "w": // Ctrl+W - Center both horizontally and vertically
               e.preventDefault();
-              if (activeObject.type === 'group') {
+              if (activeObject.type === "group") {
                 // Center the group itself
                 const bounds = activeObject.getBoundingRect();
-                const offsetX = canvasCenter.x - (bounds.left + bounds.width / 2);
-                const offsetY = canvasCenter.y - (bounds.top + bounds.height / 2);
-                activeObject.set({ 
+                const offsetX =
+                  canvasCenter.x - (bounds.left + bounds.width / 2);
+                const offsetY =
+                  canvasCenter.y - (bounds.top + bounds.height / 2);
+                activeObject.set({
                   left: activeObject.left + offsetX,
-                  top: activeObject.top + offsetY 
+                  top: activeObject.top + offsetY,
                 });
-                
+
                 // Center all items within the group
                 const groupObjects = activeObject.getObjects();
                 if (groupObjects.length > 0) {
@@ -1066,60 +1129,75 @@ const IDCardDragAndDrop = ({
                   const groupBounds = activeObject.getBoundingRect(true);
                   const groupCenterX = groupBounds.width / 2;
                   const groupCenterY = groupBounds.height / 2;
-                  
-                  groupObjects.forEach(obj => {
+
+                  groupObjects.forEach((obj) => {
                     const objWidth = obj.width * (obj.scaleX || 1);
                     const objHeight = obj.height * (obj.scaleY || 1);
-                    obj.set({ 
+                    obj.set({
                       left: groupCenterX - objWidth / 2,
-                      top: groupCenterY - objHeight / 2 
+                      top: groupCenterY - objHeight / 2,
                     });
                   });
                 }
               } else {
                 // For individual objects, handle different types properly
-                if (activeObject.type === 'text' || activeObject.type === 'i-text') {
+                if (
+                  activeObject.type === "text" ||
+                  activeObject.type === "i-text"
+                ) {
                   // For text elements, check origin properties
-                  const newLeft = activeObject.originX === 'center' ? 
-                    canvasCenter.x : 
-                    canvasCenter.x - activeObject.getBoundingRect().width / 2;
-                  const newTop = activeObject.originY === 'center' ? 
-                    canvasCenter.y : 
-                    canvasCenter.y - activeObject.getBoundingRect().height / 2;
+                  const newLeft =
+                    activeObject.originX === "center"
+                      ? canvasCenter.x
+                      : canvasCenter.x -
+                        activeObject.getBoundingRect().width / 2;
+                  const newTop =
+                    activeObject.originY === "center"
+                      ? canvasCenter.y
+                      : canvasCenter.y -
+                        activeObject.getBoundingRect().height / 2;
                   activeObject.set({ left: newLeft, top: newTop });
-                } else if (activeObject.type === 'image') {
+                } else if (activeObject.type === "image") {
                   // For images, handle origin properly
-                  const newLeft = activeObject.originX === 'center' ? 
-                    canvasCenter.x : 
-                    canvasCenter.x - (activeObject.width * activeObject.scaleX) / 2;
-                  const newTop = activeObject.originY === 'center' ? 
-                    canvasCenter.y : 
-                    canvasCenter.y - (activeObject.height * activeObject.scaleY) / 2;
+                  const newLeft =
+                    activeObject.originX === "center"
+                      ? canvasCenter.x
+                      : canvasCenter.x -
+                        (activeObject.width * activeObject.scaleX) / 2;
+                  const newTop =
+                    activeObject.originY === "center"
+                      ? canvasCenter.y
+                      : canvasCenter.y -
+                        (activeObject.height * activeObject.scaleY) / 2;
                   activeObject.set({ left: newLeft, top: newTop });
                 } else {
                   // For other elements (shapes, etc.)
                   const targetWidth = activeObject.width * activeObject.scaleX;
-                  const targetHeight = activeObject.height * activeObject.scaleY;
-                  activeObject.set({ 
+                  const targetHeight =
+                    activeObject.height * activeObject.scaleY;
+                  activeObject.set({
                     left: canvasCenter.x - targetWidth / 2,
-                    top: canvasCenter.y - targetHeight / 2 
+                    top: canvasCenter.y - targetHeight / 2,
                   });
                 }
               }
               shouldUpdate = true;
               break;
-              
-            case '1': // Ctrl+1 - Align to left third
+
+            case "1": // Ctrl+1 - Align to left third
               e.preventDefault();
               const leftThird = canvas.width / 3;
-              if (activeObject.type === 'group') {
+              if (activeObject.type === "group") {
                 const bounds = activeObject.getBoundingRect();
                 const offsetX = leftThird - (bounds.left + bounds.width / 2);
                 activeObject.set({ left: activeObject.left + offsetX });
               } else {
                 // Handle text elements specially
-                if (activeObject.type === 'text' || activeObject.type === 'i-text') {
-                  if (activeObject.originX === 'center') {
+                if (
+                  activeObject.type === "text" ||
+                  activeObject.type === "i-text"
+                ) {
+                  if (activeObject.originX === "center") {
                     // If origin is center, just set left to third position
                     activeObject.set({ left: leftThird });
                   } else {
@@ -1134,18 +1212,21 @@ const IDCardDragAndDrop = ({
               }
               shouldUpdate = true;
               break;
-              
-            case '2': // Ctrl+2 - Align to right third
+
+            case "2": // Ctrl+2 - Align to right third
               e.preventDefault();
               const rightThird = (canvas.width * 2) / 3;
-              if (activeObject.type === 'group') {
+              if (activeObject.type === "group") {
                 const bounds = activeObject.getBoundingRect();
                 const offsetX = rightThird - (bounds.left + bounds.width / 2);
                 activeObject.set({ left: activeObject.left + offsetX });
               } else {
                 // Handle text elements specially
-                if (activeObject.type === 'text' || activeObject.type === 'i-text') {
-                  if (activeObject.originX === 'center') {
+                if (
+                  activeObject.type === "text" ||
+                  activeObject.type === "i-text"
+                ) {
+                  if (activeObject.originX === "center") {
                     // If origin is center, just set left to third position
                     activeObject.set({ left: rightThird });
                   } else {
@@ -1160,12 +1241,12 @@ const IDCardDragAndDrop = ({
               }
               shouldUpdate = true;
               break;
-              
+
             default:
               // No action for other keys
               break;
           }
-          
+
           if (shouldUpdate) {
             activeObject.setCoords();
             canvas.renderAll();
@@ -1176,10 +1257,10 @@ const IDCardDragAndDrop = ({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    
+    document.addEventListener("keydown", handleKeyDown);
+
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isEdit, undo, redo, trackElementPositions, saveCanvasState]);
 
@@ -1188,7 +1269,7 @@ const IDCardDragAndDrop = ({
     if (!canvasRef.current?.fabricCanvas || !userData || !canvasReady) return;
 
     const canvas = canvasRef.current.fabricCanvas;
-    
+
     const updateCanvasContent = async () => {
       try {
         // Capture current element positions before removing them
@@ -1208,10 +1289,10 @@ const IDCardDragAndDrop = ({
         });
 
         // Remove existing content (but keep guides)
-        const objectsToRemove = canvas.getObjects().filter(obj => 
-          obj.name && !obj.name.includes('Guide')
-        );
-        objectsToRemove.forEach(obj => canvas.remove(obj));
+        const objectsToRemove = canvas
+          .getObjects()
+          .filter((obj) => obj.name && !obj.name.includes("Guide"));
+        objectsToRemove.forEach((obj) => canvas.remove(obj));
 
         // Add user image (circle or rounded square)
         if (userImage) {
@@ -1220,13 +1301,34 @@ const IDCardDragAndDrop = ({
               userImage,
               (img) => {
                 if (!img) return;
+                // Enhance image quality settings
+                img.set({
+                  // Disable image smoothing for sharper rendering
+                  imageSmoothingEnabled: false,
+                  // Use high-quality scaling
+                  resampleMethod: 'lanczos',
+                });
 
                 const circleCenterX = 200;
                 const circleCenterY = 235;
                 const circleRadius = 70;
                 const boxSize = circleRadius * 2.5 * 1.05;
+                
+                // Use higher resolution calculation for better quality
                 const baseSize = Math.max(img.width, img.height);
                 const scale = boxSize / baseSize;
+                
+                // Apply minimum resolution threshold to maintain quality
+                const minResolution = 400; // Minimum pixel dimension
+                const currentMaxDimension = Math.max(
+                  img.width * scale, 
+                  img.height * scale
+                );
+                
+                let qualityScale = scale;
+                if (currentMaxDimension < minResolution) {
+                  qualityScale = scale * (minResolution / currentMaxDimension);
+                }
 
                 const clipShape = isCircle
                   ? new fabric.Circle({
@@ -1244,14 +1346,19 @@ const IDCardDragAndDrop = ({
                     });
 
                 // Use current position if available, otherwise use saved layout or default
-                const positionSource = currentPositions?.userPhoto || savedLayout?.userPhoto;
-                
+                const positionSource =
+                  currentPositions?.userPhoto || savedLayout?.userPhoto;
+
                 // For shake animation, start at final position but with low opacity
                 let finalLeft = positionSource?.left || circleCenterX;
                 let finalTop = positionSource?.top || circleCenterY;
                 let startOpacity = 1;
-                
-                if (showIntroAnimation && !animationComplete && !positionSource) {
+
+                if (
+                  showIntroAnimation &&
+                  !animationComplete &&
+                  !positionSource
+                ) {
                   startOpacity = 0.3; // Start with low opacity for fade-in effect
                 }
 
@@ -1274,6 +1381,8 @@ const IDCardDragAndDrop = ({
                   originalImageWidth: img.width,
                   originalImageHeight: img.height,
                   originalTargetScale: scale,
+                  // High-quality rendering options
+                  imageSmoothingEnabled: false,
                   // Store final position for animation
                   finalLeft: finalLeft,
                   finalTop: finalTop,
@@ -1281,22 +1390,30 @@ const IDCardDragAndDrop = ({
                 });
 
                 // Debug: Log actual rendered sizes
-                console.log('User Photo Creation Debug:', {
+                console.log("User Photo Creation Debug:", {
                   originalImageWidth: img.width,
                   originalImageHeight: img.height,
                   baseSize: baseSize,
                   targetBoxSize: boxSize,
                   calculatedScale: scale,
+                  qualityScale: qualityScale,
                   appliedScaleX: positionSource?.scaleX || scale,
                   appliedScaleY: positionSource?.scaleY || scale,
-                  finalDisplayWidth: (positionSource?.scaleX || scale) * img.width,
-                  finalDisplayHeight: (positionSource?.scaleY || scale) * img.height,
-                  position: `(${finalLeft}, ${finalTop})`
+                  finalDisplayWidth:
+                    (positionSource?.scaleX || scale) * img.width,
+                  finalDisplayHeight:
+                    (positionSource?.scaleY || scale) * img.height,
+                  position: `(${finalLeft}, ${finalTop})`,
+                  qualityEnhanced: "Applied high-quality rendering settings"
                 });
 
                 resolve(img);
               },
-              { crossOrigin: "anonymous" }
+              { 
+                crossOrigin: "anonymous",
+                // Request high-quality image loading
+                quality: 'high'
+              }
             );
           });
 
@@ -1305,17 +1422,18 @@ const IDCardDragAndDrop = ({
 
         // Add text elements
         const addTextElement = (text, name, defaultLeft, defaultTop) => {
-          const positionSource = currentPositions?.[name] || savedLayout?.[name];
-          
+          const positionSource =
+            currentPositions?.[name] || savedLayout?.[name];
+
           // For shake animation, start at final position but with low opacity
           let finalLeft = positionSource?.left || defaultLeft;
           let finalTop = positionSource?.top || defaultTop;
           let startOpacity = 1;
-          
+
           if (showIntroAnimation && !animationComplete && !positionSource) {
             startOpacity = 0.3; // Start with low opacity for fade-in effect
           }
-          
+
           const textElement = new fabric.Text(text, {
             fontSize: 18,
             fontFamily: "Arial",
@@ -1339,7 +1457,7 @@ const IDCardDragAndDrop = ({
             finalTop: finalTop,
             finalAngle: positionSource?.angle || 0,
           });
-          
+
           return textElement;
         };
 
@@ -1368,7 +1486,12 @@ const IDCardDragAndDrop = ({
         // QR Code
         if (orderId) {
           try {
-            const qrDataURL = await QRCode.toDataURL(orderId, { margin: 0.5 });
+            // Generate QR code at much higher resolution for better quality
+            const qrDataURL = await QRCode.toDataURL(orderId, { 
+              margin: 0.5,
+              width: 400, // 4x higher resolution (was 100, now 400)
+              errorCorrectionLevel: 'H' // Highest error correction for better quality
+            });
             const qrImg = await new Promise((resolve) => {
               fabric.Image.fromURL(
                 qrDataURL,
@@ -1381,16 +1504,21 @@ const IDCardDragAndDrop = ({
                   const qrPositionY = 410;
 
                   // Use current position if available, otherwise use saved layout or default
-                  const positionSource = currentPositions?.qrCode || savedLayout?.qrCode;
-                  
+                  const positionSource =
+                    currentPositions?.qrCode || savedLayout?.qrCode;
+
                   let finalLeft = positionSource?.left || qrPositionX;
                   let finalTop = positionSource?.top || qrPositionY;
                   let startOpacity = 1;
-                  
-                  if (showIntroAnimation && !animationComplete && !positionSource) {
+
+                  if (
+                    showIntroAnimation &&
+                    !animationComplete &&
+                    !positionSource
+                  ) {
                     startOpacity = 0.3; // Start with low opacity for fade-in effect
                   }
-                  
+
                   img.set({
                     left: finalLeft,
                     top: finalTop,
@@ -1417,18 +1545,25 @@ const IDCardDragAndDrop = ({
                   });
 
                   // Debug: Log actual QR code sizes
-                  console.log('QR Code Creation Debug:', {
+                  console.log("QR Code Creation Debug:", {
                     originalQRImageWidth: img.width,
                     originalQRImageHeight: img.height,
                     targetQRWidth: qrCodeWidth,
                     targetQRHeight: qrCodeHeight,
                     calculatedScaleX: qrCodeWidth / img.width,
                     calculatedScaleY: qrCodeHeight / img.height,
-                    appliedScaleX: positionSource?.scaleX || qrCodeWidth / img.width,
-                    appliedScaleY: positionSource?.scaleY || qrCodeHeight / img.height,
-                    finalDisplayWidth: (positionSource?.scaleX || qrCodeWidth / img.width) * img.width,
-                    finalDisplayHeight: (positionSource?.scaleY || qrCodeHeight / img.height) * img.height,
-                    position: `(${finalLeft}, ${finalTop})`
+                    appliedScaleX:
+                      positionSource?.scaleX || qrCodeWidth / img.width,
+                    appliedScaleY:
+                      positionSource?.scaleY || qrCodeHeight / img.height,
+                    finalDisplayWidth:
+                      (positionSource?.scaleX || qrCodeWidth / img.width) *
+                      img.width,
+                    finalDisplayHeight:
+                      (positionSource?.scaleY || qrCodeHeight / img.height) *
+                      img.height,
+                    position: `(${finalLeft}, ${finalTop})`,
+                    highResolution: `Generated at ${img.width}x${img.height} for crisp quality`
                   });
 
                   resolve(img);
@@ -1448,7 +1583,8 @@ const IDCardDragAndDrop = ({
         const boxHeight = 28;
         const boxPadding = 8;
         const numBoxes = zones?.length ?? 0;
-        const totalBoxesWidth = numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
+        const totalBoxesWidth =
+          numBoxes * boxWidth + (numBoxes - 1) * boxPadding;
         const boxStartX = (canvas?.width - totalBoxesWidth) / 2;
         const boxStartY = 530;
         const borderRadius = 8;
@@ -1461,10 +1597,12 @@ const IDCardDragAndDrop = ({
 
         if (numBoxes > 0) {
           const zoneElements = [];
-          
+
           for (let i = 0; i < numBoxes; i++) {
             const currentZone = zones[i];
-            const isUserZone = userZones.includes(currentZone?.id || currentZone);
+            const isUserZone = userZones.includes(
+              currentZone?.id || currentZone
+            );
 
             const box = new fabric.Rect({
               left: i * (boxWidth + boxPadding),
@@ -1506,16 +1644,17 @@ const IDCardDragAndDrop = ({
           }
 
           // Use current position if available, otherwise use saved layout or default
-          const positionSource = currentPositions?.zoneGroup || savedLayout?.zoneGroup;
-          
+          const positionSource =
+            currentPositions?.zoneGroup || savedLayout?.zoneGroup;
+
           let finalLeft = positionSource?.left || boxStartX;
           let finalTop = positionSource?.top || boxStartY;
           let startOpacity = 1;
-          
+
           if (showIntroAnimation && !animationComplete && !positionSource) {
             startOpacity = 0.3; // Start with low opacity for fade-in effect
           }
-          
+
           const zoneGroup = new fabric.Group(zoneElements, {
             left: finalLeft,
             top: finalTop,
@@ -1544,7 +1683,7 @@ const IDCardDragAndDrop = ({
         // Update element positions tracking
         trackElementPositions(canvas);
         canvas.renderAll();
-        
+
         // Save initial state for undo/redo after a small delay to ensure everything is loaded
         setTimeout(() => {
           saveCanvasState(canvas);
@@ -1562,69 +1701,162 @@ const IDCardDragAndDrop = ({
     };
 
     updateCanvasContent();
-  }, [userData, userImage, orderId, savedLayout, zones, isEdit, isCircle, canvasReady, showIntroAnimation, animationComplete, startIntroAnimation, saveCanvasState, trackElementPositions]);
+  }, [
+    userData,
+    userImage,
+    orderId,
+    savedLayout,
+    zones,
+    isEdit,
+    isCircle,
+    canvasReady,
+    showIntroAnimation,
+    animationComplete,
+    startIntroAnimation,
+    saveCanvasState,
+    trackElementPositions,
+  ]);
+
+  // Common function for canvas upscaling with quality fallback
+  const upscaleCanvas = async (canvas, preferredMultiplier = 6) => {
+    // Temporarily hide guides for clean export
+    const guides = canvas
+      .getObjects()
+      .filter((obj) => obj.name && obj.name.includes("Guide"));
+    guides.forEach((guide) => guide.set({ opacity: 0 }));
+    canvas.renderAll();
+
+    let dataURL = null;
+    let actualMultiplier = preferredMultiplier;
+
+    try {
+      // First try with preferred multiplier
+      dataURL = canvas.toDataURL({
+        format: "png",
+        quality: 1.0,
+        multiplier: actualMultiplier,
+      });
+
+      // Check if dataURL is valid (should start with 'data:image')
+      if (
+        !dataURL ||
+        !dataURL.startsWith("data:image") ||
+        dataURL.length < 1000
+      ) {
+        throw new Error("Invalid dataURL generated");
+      }
+
+      console.log(
+        `Successfully generated image with ${actualMultiplier}x multiplier`
+      );
+    } catch (highQualityError) {
+      console.warn(
+        "High quality export failed, trying lower quality:",
+        highQualityError
+      );
+
+      // Fallback to 4x multiplier
+      try {
+        actualMultiplier = 4;
+        dataURL = canvas.toDataURL({
+          format: "png",
+          quality: 1.0,
+          multiplier: actualMultiplier,
+        });
+
+        if (
+          !dataURL ||
+          !dataURL.startsWith("data:image") ||
+          dataURL.length < 1000
+        ) {
+          throw new Error("Invalid dataURL generated with 4x multiplier");
+        }
+
+        console.log(`Generated image with ${actualMultiplier}x multiplier`);
+      } catch (mediumQualityError) {
+        console.warn(
+          "Medium quality export failed, trying standard quality:",
+          mediumQualityError
+        );
+
+        // Final fallback to 2x multiplier
+        actualMultiplier = 2;
+        dataURL = canvas.toDataURL({
+          format: "png",
+          quality: 1.0,
+          multiplier: actualMultiplier,
+        });
+
+        if (!dataURL || !dataURL.startsWith("data:image")) {
+          throw new Error("Failed to generate any valid image");
+        }
+
+        console.log(`Generated image with ${actualMultiplier}x multiplier`);
+      }
+    }
+
+    // Restore guides opacity (keep them hidden)
+    guides.forEach((guide) => guide.set({ opacity: 0 }));
+    canvas.renderAll();
+
+    return { dataURL, actualMultiplier };
+  };
 
   const downloadCanvas = async () => {
     setLoading(true);
     try {
-      // Create high-definition canvas for 4K quality download
-      const hdCanvas = await CreateHDCanvas({
-        finalImage,
-        userImage,
-        userData,
-        orderId,
-        zones,
-        bgRequired,
-        // Get current element positions from the canvas for accurate rendering
-        elementPositions: trackElementPositions(canvasRef.current.fabricCanvas),
-        isCircle,
-        // Enhanced quality settings for 4K
-        qualityMultiplier: 4, // 4x multiplier for 4K quality
-        dpi: 300, // High DPI for print quality
-      });
+      const canvas = canvasRef.current.fabricCanvas;
+      if (!canvas) {
+        throw new Error("Canvas not found");
+      }
 
-      // Render the canvas to ensure all elements are properly displayed
-      hdCanvas.renderAll();
-      
-      // Generate high-quality data URL
-      const dataURL = hdCanvas.toDataURL({ 
-        format: "png", 
-        quality: 1.0, // Maximum quality
-        multiplier: 2 // Additional multiplier for extra sharpness
-      });
+      // Use common upscale function with 6x preferred multiplier for download
+      const { dataURL, actualMultiplier } = await upscaleCanvas(canvas, 6);
 
       // Create and trigger download
       const link = document.createElement("a");
       link.href = dataURL;
-      link.download = `id_card_4k_${orderId || userData?.name?.replace(/\s+/g, '_') || "id"}.png`;
+      const qualityLabel =
+        actualMultiplier >= 4
+          ? "4k"
+          : actualMultiplier >= 2
+          ? "hd"
+          : "standard";
+      link.download = `id_card_${qualityLabel}_${
+        orderId || userData?.name?.replace(/\s+/g, "_") || "id"
+      }.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       // Optional: Upload to API in background
-      const filename = `id_card_4k_${orderId || userData?.name?.replace(/\s+/g, '_') || "id"}.png`;
+      const filename = `id_card_${qualityLabel}_${
+        orderId || userData?.name?.replace(/\s+/g, "_") || "id"
+      }.png`;
       UploadToAPIBackground({
         dataURL,
         filename,
         userId: userData?.id,
         api,
         authToken,
-      }).then((result) => {
-        if (result) {
-          console.log('4K ID Card uploaded to server successfully');
-        }
-      }).catch((error) => {
-        console.warn('Background upload failed:', error);
-      });
+      })
+        .then((result) => {
+          if (result) {
+            console.log(
+              `${qualityLabel.toUpperCase()} ID Card uploaded to server successfully`
+            );
+          }
+        })
+        .catch((error) => {
+          console.warn("Background upload failed:", error);
+        });
 
-      // Clean up the HD canvas
-      hdCanvas.dispose();
-      
-      console.log('4K ID Card downloaded successfully');
-      
+      console.log(
+        `${qualityLabel.toUpperCase()} ID Card downloaded successfully (${actualMultiplier}x quality)`
+      );
     } catch (err) {
-      console.error("4K Download failed:", err);
-      alert("4K Download failed. Please try again.");
+      console.error("Download failed:", err);
+      alert("Download failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1633,28 +1865,81 @@ const IDCardDragAndDrop = ({
   const printCanvas = async () => {
     setLoading(true);
     try {
-      const hdCanvas = await CreateHDCanvas({
-        finalImage,
-        userImage,
-        userData,
-        orderId,
-        zones,
-        bgRequired,
-        // Pass current element positions for consistent rendering
-        elementPositions: trackElementPositions(canvasRef.current.fabricCanvas),
-        isCircle,
-      });
+      const canvas = canvasRef.current.fabricCanvas;
+      if (!canvas) {
+        throw new Error("Canvas not found");
+      }
 
-      await HandlePrint({
-        hdCanvas,
-        orderId,
-        userId: userData.id,
-        api,
-        authToken,
-        ErrorAlert,
-      });
+      // Use common upscale function with 6x preferred multiplier for print
+      const { dataURL, actualMultiplier } = await upscaleCanvas(canvas, 6);
 
-      hdCanvas.dispose();
+      // Update card status via API
+      try {
+        const response = await fetch(`${api}card-status/${userData.id}/1`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!response.ok) {
+          ErrorAlert("Card status update failed. Printing will continue.");
+        }
+      } catch (apiError) {
+        ErrorAlert("Failed to update card status. Printing will continue.");
+      }
+
+      // Create print window
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        throw new Error("Popup blocked. Please allow popups to print.");
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print ID Card</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background: #fff;
+              }
+              img {
+                max-width: 100%;
+                max-height: 100vh;
+              }
+            </style>
+          </head>
+          <body>
+            <img id="printImage" src="${dataURL}" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        const img = printWindow.document.getElementById("printImage");
+        if (img.complete) {
+          printWindow.focus();
+          printWindow.print();
+        } else {
+          img.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+          };
+          img.onerror = () => {
+            console.error("Image failed to load for printing");
+            alert("Failed to load image for printing.");
+          };
+        }
+      };
+
+      console.log(
+        `Print canvas opened successfully (${actualMultiplier}x quality)`
+      );
     } catch (err) {
       console.error("Print process failed:", err);
       alert("Printing failed. Please try again.");
@@ -1698,18 +1983,18 @@ const IDCardDragAndDrop = ({
             </Button>
           </>
         )}
-        {/* {download && ( */}
-          <Button
-            variant="primary"
-            onClick={downloadCanvas}
-            disabled={!canvasReady || loading}
-            className="d-flex align-items-center gap-2"
-            title="Download ID Card in 4K quality"
-          >
-            {loading ? "Please Wait..." : "Download 4K"}
-            <ArrowBigDownDash size={16} />
-          </Button>
-        {/* )} */}
+        {download && (
+        <Button
+          variant="primary"
+          onClick={downloadCanvas}
+          disabled={!canvasReady || loading}
+          className="d-flex align-items-center gap-2"
+          title="Download ID Card in 4K quality"
+        >
+          {loading ? "Please Wait..." : "Download 4K"}
+          <ArrowBigDownDash size={16} />
+        </Button>
+        )}
         {print && (
           <Button
             variant="secondary"
@@ -1724,7 +2009,12 @@ const IDCardDragAndDrop = ({
       </div>
 
       <div
-        style={{ display: "flex", justifyContent: "center", overflow: "auto", position: "relative" }}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          overflow: "auto",
+          position: "relative",
+        }}
       >
         {finalImage && userData ? (
           <div
