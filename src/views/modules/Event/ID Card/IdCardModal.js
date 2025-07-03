@@ -29,7 +29,7 @@ export const FetchImageBlob = async (api, setLoading, imageUrl, setState) => {
   }
 }
 const IdCardModal = ({ show, onHide, id, idCardData, bgRequired, zones }) => {
-  const { api, authToken } = useMyContext();
+  const { api, authToken, UserPermissions } = useMyContext();
   const [finalImage, setFinalImage] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -131,8 +131,8 @@ const [savedLayout, setSavedLayout] = useState();
           userData={idCardData}
           animate={false}
           isEdit={false}
-          download={true}
-          print={true}
+          download={UserPermissions.includes("Download Id Card")}
+          print={UserPermissions.includes("Print Id Card")}
           fetchingLayout={fetchingLayout}
           savedLayout={savedLayout}
           isCircle={isCircle}

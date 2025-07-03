@@ -7,7 +7,6 @@ import { capitalize } from "lodash";
 import { QRCodeCanvas } from "qrcode.react";
 import { UploadToAPIBackground } from "./utils/CanvasUtils";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import axios from "axios";
 
 const IDCardDragAndDrop = ({
   finalImage,
@@ -1918,7 +1917,7 @@ const IDCardDragAndDrop = ({
             className="d-flex align-items-center gap-2"
             title="Download ID Card in 4K quality"
           >
-            {loading ? "Please Wait..." : "Download 4K"}
+            {loading ? "Please Wait..." : "Download"}
             <ArrowBigDownDash size={16} />
           </Button>
         )}
