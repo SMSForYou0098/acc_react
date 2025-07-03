@@ -28,7 +28,7 @@ const TicketVerification = memo(({
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [pendingQRData, setPendingQRData] = useState(null);
     const [selectedAction, setSelectedAction] = useState(null);
-    const [scanType, setScanType] = useState(''); 
+    const [scanType, setScanType] = useState('verify'); 
     // Handle admin actions
     const handleAdminAction = async (actionType,data) => {
         let token = pendingQRData ?? data;

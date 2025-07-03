@@ -1,6 +1,17 @@
 import { Button } from "react-bootstrap";
 import { CustomTooltip } from "../CustomUtils/CustomTooltip";
-import { IdCard, Eye, Users2, Settings, Trash2, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  IdCard,
+  Eye,
+  Users2,
+  Settings,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Key,
+  Smartphone,
+} from "lucide-react";
 
 export const defaultColumnProps = {
   headerAlign: "center",
@@ -9,13 +20,14 @@ export const defaultColumnProps = {
 };
 
 const formatRoleBadge = (cell) => {
-  const badgeClass = {
-    Admin: "bg-info",
-    Organizer: "bg-primary",
-    User: "bg-warning",
-    Agent: "bg-danger",
-    "Support Executive": "bg-success",
-  }[cell] || "bg-secondary";
+  const badgeClass =
+    {
+      Admin: "bg-info",
+      Organizer: "bg-primary",
+      User: "bg-warning",
+      Agent: "bg-danger",
+      "Support Executive": "bg-success",
+    }[cell] || "bg-secondary";
 
   return (
     <span className={`badge p-2 fw-normal ls-1 ${badgeClass} w-100`}>
@@ -24,7 +36,22 @@ const formatRoleBadge = (cell) => {
   );
 };
 
-const formatAuth = (cell) => (parseInt(cell) === 1 ? "Password" : "OTP");
+const formatAuth = (cell) => {
+  const isPassword = parseInt(cell) === 1;
+  const config = {
+    icon: isPassword ? <Key size={16} /> : <Smartphone size={16} />,
+    text: isPassword ? "Password" : "OTP",
+    variant: isPassword ? "outline-primary" : "outline-secondary",
+  };
+
+  return (
+    <CustomTooltip text={config.text}>
+      <Button variant={config.variant} className="btn-sm btn-icon border-0 bg-transparent p-0 m-0" disabled>
+        {config.icon}
+      </Button>
+    </CustomTooltip>
+  );
+};
 
 const formatApprovalStatus = (cell, row) => {
   if (row.role_name !== "User") {
@@ -37,15 +64,24 @@ const formatApprovalStatus = (cell, row) => {
     );
   }
 
-  const status = {
-    0: { text: "Pending", variant: "warning", icon: <Clock size={16} /> },
-    1: { text: "Approved", variant: "success", icon: <CheckCircle size={16} /> },
-    2: { text: "Rejected", variant: "danger", icon: <XCircle size={16} /> },
-  }[cell] || {};
+  const status =
+    {
+      0: { text: "Pending", variant: "warning", icon: <Clock size={16} /> },
+      1: {
+        text: "Approved",
+        variant: "success",
+        icon: <CheckCircle size={16} />,
+      },
+      2: { text: "Rejected", variant: "danger", icon: <XCircle size={16} /> },
+    }[cell] || {};
 
   return (
     <CustomTooltip text={status.text}>
-      <Button variant={`outline-${status.variant}`} className="btn-sm btn-icon" disabled>
+      <Button
+        variant={`outline-${status.variant}`}
+        className="btn-sm btn-icon"
+        disabled
+      >
         {status.icon}
       </Button>
     </CustomTooltip>
@@ -122,7 +158,9 @@ const formatZones = (cell, row, zones, setZoneModal) => {
       })}
 
       {remainingZones > 0 && (
-        <CustomTooltip text={`${remainingZones} more zone${remainingZones > 1 ? "s" : ""}`}>
+        <CustomTooltip
+          text={`${remainingZones} more zone${remainingZones > 1 ? "s" : ""}`}
+        >
           <Button
             size="sm"
             variant="primary"
@@ -132,7 +170,7 @@ const formatZones = (cell, row, zones, setZoneModal) => {
               setZoneModal({
                 show: true,
                 user: row,
-                assignedZoneIds : assignedZoneIds
+                assignedZoneIds: assignedZoneIds,
               })
             }
           >
@@ -178,7 +216,12 @@ export const baseColumns = [
   },
 ];
 
-export const getConditionalColumns = (type, zones, setZoneModal, handleApproval) => {
+export const getConditionalColumns = (
+  type,
+  zones,
+  setZoneModal,
+  handleApproval
+) => {
   const conditionalCols = [];
 
   if (type === "company") {
@@ -213,7 +256,8 @@ export const getConditionalColumns = (type, zones, setZoneModal, handleApproval)
       {
         dataField: "approval",
         text: "Approval Actions",
-        formatter: (cell, row) => formatApprovalActions(cell, row, handleApproval),
+        formatter: (cell, row) =>
+          formatApprovalActions(cell, row, handleApproval),
         ...defaultColumnProps,
       }
     );
@@ -233,7 +277,7 @@ export const getActionColumn = (type, handlers) => ({
       HandleDelete,
       HandleBulkUser,
       userRole,
-      UserPermissions
+      UserPermissions,
     } = handlers;
 
     const actions = [
@@ -243,7 +287,9 @@ export const getActionColumn = (type, handlers) => ({
         onClick: () => handleShowIdCardModal(row.id),
         variant: "secondary",
         isDisabled: row?.status !== 1 || parseInt(row.approval_status) !== 1,
-        visible: (type === "user" || userRole === 'Sub Organizer') && UserPermissions?.includes('Generate ID Card'),
+        visible:
+          (type === "user" || userRole === "Sub Organizer") &&
+          UserPermissions?.includes("Generate ID Card"),
       },
       {
         tooltip: "Preview User",
@@ -264,14 +310,14 @@ export const getActionColumn = (type, handlers) => ({
         icon: <Settings size={16} />,
         onClick: () => AssignCredit(row.id),
         variant: "primary",
-        visible:  UserPermissions?.includes('Manage User'),
+        visible: UserPermissions?.includes("Manage User"),
       },
       {
         tooltip: "Delete User",
         icon: <Trash2 size={16} />,
         onClick: () => HandleDelete(row.id),
         variant: "danger",
-        visible:  UserPermissions?.includes('Delete User')
+        visible: UserPermissions?.includes("Delete User"),
       },
     ];
 

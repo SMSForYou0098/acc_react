@@ -10,6 +10,7 @@ const ZonesPreview = ({ zones, assignedZoneIds, name = "User" }) => {
       title={`Assigned Zones For ${capitalize(name)}`}
       color="info"
       icon={<MapPin size={18} />}
+      hideTitle={true}
     >
       <div className="mb-3">
         <Row className="g-3">
@@ -21,7 +22,7 @@ const ZonesPreview = ({ zones, assignedZoneIds, name = "User" }) => {
               (z) => String(z) === String(zone.id)
             );
             return (
-              <Col md={3} key={zone.id}>
+              <Col md={3} xs={6} key={zone.id}>
                 <Badge
                   bg={isAssigned ? "success" : "light"}
                   text={isAssigned ? "white" : "dark"}

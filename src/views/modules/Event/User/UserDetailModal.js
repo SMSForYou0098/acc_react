@@ -7,14 +7,16 @@ import ZonesPreview from "./ZonesPreview";
 import CustomImage from "../Utils/CustomImage";
 import { capitalize } from "lodash";
 
-export const Section = ({ title, color, icon, children }) => (
+export const Section = ({ title, color, icon, children,hideTitle }) => (
   <div className="mb-4 shadow-sm rounded-4 overflow-hidden">
+    {!hideTitle && (
     <div
       className={`bg-${color} text-white px-3 py-2 d-flex align-items-center`}
     >
       {icon}
       <h6 className="mb-0 fw-semibold text-white ms-2">{title}</h6>
     </div>
+    )}
     <div className="p-4 bg-white border-top border-light-subtle">
       {children}
     </div>

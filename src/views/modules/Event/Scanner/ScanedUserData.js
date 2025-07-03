@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Card, Col, Image, Modal, Row } from 'react-bootstrap'
-import { User, AtSign, Phone, Briefcase, Shield } from 'lucide-react';
+import { User, AtSign, Phone, Briefcase, Shield, PhoneCall, Building } from 'lucide-react';
 import ZonesPreview from '../User/ZonesPreview';
 
 const ScanedUserData = (props) => {
@@ -18,15 +18,15 @@ const ScanedUserData = (props) => {
       icon: <User size={20} />,
       value: iDCardData?.user_name || 'N/A',
     },
-    // {
-    //   label: "Role",
-    //   icon: <Shield size={20} />,
-    //   value: iDCardData?.role || 'N/A',
-    // },
+    {
+      label: "Number",
+      icon: <PhoneCall size={20} />,
+      value: iDCardData?.user_number || 'N/A',
+    },
     {
       label: "Company Name",
       icon: <Briefcase size={20} />,
-      value: iDCardData?.company_user?.name || 'N/A',
+      value: iDCardData?.company_user?.company_name || 'N/A',
     },
     // {
     //   label: "Company Email",
@@ -35,7 +35,7 @@ const ScanedUserData = (props) => {
     // },
     {
       label: "Organizer Name",
-      icon: <User size={20} />,
+      icon: <Building size={20} />,
       value: iDCardData?.organizer_user?.name || 'N/A',
     },
     // {
@@ -51,7 +51,6 @@ const ScanedUserData = (props) => {
       onHide={() => setShow(false)}
       size="lg"
       aria-labelledby="contained-modal-title-vcenter"
-      centered
     >
       <Modal.Header closeButton className="justify-content-center">
         <Modal.Title className="text-center w-100">
@@ -63,7 +62,7 @@ const ScanedUserData = (props) => {
           <Card.Body>
             <Row>
               {fields?.map((field, index) => (
-                <Col key={index} xs={12} md={6} className="mb-3">
+                <Col key={index} xs={6} md={6} className="mb-3">
                   <div className="d-flex gap-3 align-items-center border-bottom pb-2">
                     <span className="text-dark">{field.icon}</span>
                     <div>
@@ -73,14 +72,16 @@ const ScanedUserData = (props) => {
                   </div>
                 </Col>
               ))}
+              <div className="mt-3">
+                <ZonesPreview
+                  zones={iDCardData?.zone_data}
+                  assignedZoneIds={iDCardData?.company_user?.Zone}
+                  name={iDCardData?.user_name}
+                />
+              </div>
             </Row>
           </Card.Body>
         </Card>
-        {/* <ZonesPreview
-          zones={zones}
-          assignedZoneIds={zoneModal?.assignedZoneIds}
-          name={zoneModal?.user?.name}
-        /> */}
       </Modal.Body>
       <Modal.Footer className="d-flex justify-content-center">
         <Button

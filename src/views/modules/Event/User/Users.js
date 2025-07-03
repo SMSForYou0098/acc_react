@@ -323,6 +323,7 @@ const Users = memo(({ type }) => {
           data={users}
           loading={loading}
           columns={columns}
+          exportPermisson={'Export Users'}
           searchPlaceholder="Search users..."
           bookingLink={"/dashboard/users/new"}
           ButtonLable={"New User"}

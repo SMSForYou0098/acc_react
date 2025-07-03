@@ -64,7 +64,7 @@ const TickeScanFeilds = ({
                                 <Col md={6}>
                                     <Form.Group>
                                         <Form.Select
-                                            value={'verify'}
+                                            value={scanType}
                                             onChange={(e) => setScanType(e.target.value)}
                                         >
                                             <option value="">Select Type</option>

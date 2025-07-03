@@ -8,6 +8,7 @@ import Select from "react-select";
 import { ArrowLeft, ArrowLeftSquare, Pencil, Save, User2 } from "lucide-react";
 import FilePreview from "./FilePreview";
 import UserFormSkeleton from "./UserFormSkeleton";
+import ImageCropper from "../Utils/ImageCropper";
 const NewUser = memo(() => {
   const {
     api,
@@ -76,6 +77,11 @@ const NewUser = memo(() => {
     photoIdName: "",
   });
 
+  // State for image cropper
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState("");
+  const [tempImageKey, setTempImageKey] = useState("");
+
   const getZones = async () => {
     try {
       const response = await axios.get(`${api}zone`, {
@@ -106,10 +112,13 @@ const NewUser = memo(() => {
         alert("Please upload a valid image file (jpg, png, etc.)");
         return;
       }
-      setPreview((prev) => ({
-        ...prev,
-        photoUrl: URL.createObjectURL(file),
-      }));
+      
+      // Create image URL and show cropper
+      const imageUrl = URL.createObjectURL(file);
+      setTempImageSrc(imageUrl);
+      setTempImageKey(key);
+      setShowCropper(true);
+      return;
     }
 
     if (key === "photoId") {
@@ -120,6 +129,33 @@ const NewUser = memo(() => {
     }
 
     setUserData((prev) => ({ ...prev, [key]: file }));
+  };
+
+  // Handle cropped image
+  const handleCropComplete = (croppedFile) => {
+    setUserData((prev) => ({ ...prev, [tempImageKey]: croppedFile }));
+    setPreview((prev) => ({
+      ...prev,
+      photoUrl: URL.createObjectURL(croppedFile),
+    }));
+    
+    // Clean up temporary image URL
+    if (tempImageSrc) {
+      URL.revokeObjectURL(tempImageSrc);
+    }
+    
+    setTempImageSrc("");
+    setTempImageKey("");
+  };
+
+  // Handle cropper close
+  const handleCropperClose = () => {
+    if (tempImageSrc) {
+      URL.revokeObjectURL(tempImageSrc);
+    }
+    setTempImageSrc("");
+    setTempImageKey("");
+    setShowCropper(false);
   };
 
   const getCategory = async () => {
@@ -553,6 +589,7 @@ const NewUser = memo(() => {
                             className="file-upload"
                             type="file"
                             accept="image/*"
+                            onChange={(e) => handleFileChange("photo", e.target.files[0])}
                           />
                         </div>
                       </div>
@@ -711,7 +748,7 @@ const NewUser = memo(() => {
 
                               {userRole === "Admin" &&
                                 (roleName === "User" ||
-                                  roleName === "Company" || roleName === "Sub Organizer") && (
+                                  roleName === "Company" || roleName === "Sub Organizer" || roleName === 'Scanner') && (
                                   <Form.Group className="col-md-3 form-group">
                                     <Form.Label>Organizer:</Form.Label>
                                     <Select
@@ -794,19 +831,6 @@ const NewUser = memo(() => {
                                 options={zones}
                                 value={selectedZones}
                                 onChange={(selected) => {
-                                  // if (roleName === "User") {
-                                  //   // Prevent removal of original assigned zones
-                                  //   const originalIds = originalZones.map(
-                                  //     (z) => z.value
-                                  //   );
-                                  //   const selectedIds = selected.map(
-                                  //     (z) => z.value
-                                  //   );
-                                  //   const removed = originalIds.filter(
-                                  //     (id) => !selectedIds.includes(id)
-                                  //   );
-                                  //   if (removed.length > 0) return; // prevent removal
-                                  // }
                                   setSelectedZones(selected);
                                 }}
                                 isOptionDisabled={(option) => {
@@ -847,28 +871,6 @@ const NewUser = memo(() => {
                             </Form.Group>
                           )}
 
-                          {roleName === "Scanner" && (
-                            <Form.Group className="col-md-3 form-group">
-                              <Form.Label>Event Gates:</Form.Label>
-                              <Select
-                                isMulti
-                                options={gates}
-                                value={selectedGates}
-                                onChange={(selected) =>
-                                  handleGateChange(selected)
-                                }
-                                className="js-choice"
-                                placeholder="Select Gates"
-                                menuPortalTarget={document.body}
-                                styles={{
-                                  menuPortal: (base) => ({
-                                    ...base,
-                                    zIndex: 9999,
-                                  }),
-                                }}
-                              />
-                            </Form.Group>
-                          )}
                         </Row>
 
                         {/* Documents Section */}
@@ -1170,6 +1172,19 @@ const NewUser = memo(() => {
           </Row>
         </Form>
       )}
+      
+      {/* Image Cropper Modal */}
+      <ImageCropper
+        show={showCropper}
+        onHide={handleCropperClose}
+        imageSrc={tempImageSrc}
+        onCropComplete={handleCropComplete}
+        targetDimensions={{ width: 150, height: 150 }}
+        widthRange={{ min: 100, max: 300 }}
+        heightRange={{ min: 100, max: 300 }}
+        allowFreeform={false}
+        showCircularPreview={true}
+      />
     </Fragment>
   );
 });
