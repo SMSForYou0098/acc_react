@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Card, Col, Image, Modal, Row } from 'react-bootstrap'
 import { User, AtSign, Phone, Briefcase, Shield } from 'lucide-react';
+import ZonesPreview from '../User/ZonesPreview';
 
 const ScanedUserData = (props) => {
   const { show, iDCardData, setShow, handleVerify } = props;
@@ -17,26 +18,26 @@ const ScanedUserData = (props) => {
       icon: <User size={20} />,
       value: iDCardData?.user_name || 'N/A',
     },
-    {
-      label: "Role",
-      icon: <Shield size={20} />,
-      value: iDCardData?.role || 'N/A',
-    },
+    // {
+    //   label: "Role",
+    //   icon: <Shield size={20} />,
+    //   value: iDCardData?.role || 'N/A',
+    // },
     {
       label: "Company Name",
       icon: <Briefcase size={20} />,
       value: iDCardData?.company_user?.name || 'N/A',
     },
-    {
-      label: "Company Email",
-      icon: <AtSign size={20} />,
-      value: iDCardData?.company_user?.email || 'N/A',
-    },
     // {
-    //   label: "Organizer Name",
-    //   icon: <User size={20} />,
-    //   value: iDCardData?.organizer_user?.name || 'N/A',
+    //   label: "Company Email",
+    //   icon: <AtSign size={20} />,
+    //   value: iDCardData?.company_user?.email || 'N/A',
     // },
+    {
+      label: "Organizer Name",
+      icon: <User size={20} />,
+      value: iDCardData?.organizer_user?.name || 'N/A',
+    },
     // {
     //   label: "Organizer Email",
     //   icon: <AtSign size={20} />,
@@ -75,6 +76,11 @@ const ScanedUserData = (props) => {
             </Row>
           </Card.Body>
         </Card>
+        {/* <ZonesPreview
+          zones={zones}
+          assignedZoneIds={zoneModal?.assignedZoneIds}
+          name={zoneModal?.user?.name}
+        /> */}
       </Modal.Body>
       <Modal.Footer className="d-flex justify-content-center">
         <Button

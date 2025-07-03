@@ -26,9 +26,7 @@ const UserDetailModal = (props) => {
     showModal = true, 
     setShowModal, 
     selectedUser, 
-    handleApproval, 
     zones, 
-    assignedZoneIds,
     asDiv = false // New prop to determine if we should render as div
   } = props;
   
