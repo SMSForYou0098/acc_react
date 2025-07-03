@@ -34,15 +34,27 @@ const ImageCropper = (props) => {
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
 
-    // Calculate initial crop size based on target dimensions
-    let cropWidth = targetDimensions.width;
-    let cropHeight = targetDimensions.height;
-
-    // If image is smaller than target, use image dimensions
-    if (width < targetDimensions.width || height < targetDimensions.height) {
-      const scale = Math.min(width / targetDimensions.width, height / targetDimensions.height);
-      cropWidth = targetDimensions.width * scale;
-      cropHeight = targetDimensions.height * scale;
+    // Calculate initial crop size based on target dimensions and image size
+    const imageAspectRatio = width / height;
+    const targetAspectRatio = targetDimensions.width / targetDimensions.height;
+    
+    let cropWidth, cropHeight;
+    
+    if (!allowFreeform) {
+      // For fixed aspect ratio, calculate the largest possible crop that fits
+      if (imageAspectRatio > targetAspectRatio) {
+        // Image is wider than target ratio
+        cropHeight = Math.min(height, targetDimensions.height);
+        cropWidth = cropHeight * targetAspectRatio;
+      } else {
+        // Image is taller than target ratio or same ratio
+        cropWidth = Math.min(width, targetDimensions.width);
+        cropHeight = cropWidth / targetAspectRatio;
+      }
+    } else {
+      // For freeform, use target dimensions but scale down if image is smaller
+      cropWidth = Math.min(width, targetDimensions.width);
+      cropHeight = Math.min(height, targetDimensions.height);
     }
 
     const initialCrop = {
@@ -95,9 +107,14 @@ const ImageCropper = (props) => {
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
+    // Set canvas to target dimensions
     canvas.width = targetDimensions.width;
     canvas.height = targetDimensions.height;
 
+    // Clear canvas
+    ctx.clearRect(0, 0, targetDimensions.width, targetDimensions.height);
+
+    // Draw the cropped portion scaled to target dimensions
     ctx.drawImage(
       image,
       crop.x * scaleX,

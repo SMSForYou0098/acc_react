@@ -113,11 +113,31 @@ const NewUser = memo(() => {
         return;
       }
       
-      // Create image URL and show cropper
-      const imageUrl = URL.createObjectURL(file);
-      setTempImageSrc(imageUrl);
-      setTempImageKey(key);
-      setShowCropper(true);
+      // Check if image is approximately square before cropping
+      const img = new Image();
+      img.onload = () => {
+        const width = img.width;
+        const height = img.height;
+        
+        // Allow up to 20px difference for square images
+        const aspectRatioDiff = Math.abs(width - height);
+        // if (aspectRatioDiff > 20) {
+        //   alert(`Photo must be approximately square. Current image is ${width}x${height} pixels. Please upload an image where width and height differ by no more than 20 pixels.`);
+        //   return;
+        // }
+        
+        // Image is approximately square, proceed with cropping
+        const imageUrl = URL.createObjectURL(file);
+        setTempImageSrc(imageUrl);
+        setTempImageKey(key);
+        setShowCropper(true);
+      };
+      
+      img.onerror = () => {
+        alert("Invalid image file. Please select a valid image.");
+      };
+      
+      img.src = URL.createObjectURL(file);
       return;
     }
 

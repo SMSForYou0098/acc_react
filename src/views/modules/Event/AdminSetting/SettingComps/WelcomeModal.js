@@ -88,6 +88,31 @@ const WelcomeModal = () => {
                 const imageWidth = img.width
                 const imageHeight = img.height
 
+                // Check orientation based on image type
+                if (previewType === 'big') {
+                    // Modal image should be landscape (width > height)
+                    if (imageWidth <= imageHeight) {
+                        setErrors(prev => ({
+                            ...prev,
+                            [imageType]: `Modal image must be landscape (width > height). Current image is ${imageWidth}x${imageHeight} pixels.`
+                        }))
+                        // Clear the file input
+                        e.target.value = ''
+                        return
+                    }
+                } else if (previewType === 'small') {
+                    // Mobile modal image should be portrait (height > width)
+                    if (imageHeight <= imageWidth) {
+                        setErrors(prev => ({
+                            ...prev,
+                            [imageType]: `Mobile modal image must be portrait (height > width). Current image is ${imageWidth}x${imageHeight} pixels.`
+                        }))
+                        // Clear the file input
+                        e.target.value = ''
+                        return
+                    }
+                }
+
                 // Check if image is smaller than required dimensions
                 if (imageWidth < requiredDimensions.width || imageHeight < requiredDimensions.height) {
                     setErrors(prev => ({

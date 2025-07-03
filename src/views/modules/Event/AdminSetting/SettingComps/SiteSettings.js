@@ -69,9 +69,9 @@ if (loading) {
                   <Placeholder as="p" animation="glow">
                     <Placeholder xs={4} /> {/* Label */}
                   </Placeholder>
-                  <Placeholder.Button variant="primary" xs={12} /> {/* File Input */}
+                  {/* <Placeholder.Button variant="info" xs={12} /> File Input */}
                   <Placeholder as="div" animation="glow" className="mt-2">
-                    <Placeholder style={{ width: '100px', height: '100px' }} /> {/* Image Preview */}
+                    <Placeholder style={{ width: '100px', height: '100px' }} />
                   </Placeholder>
                 </Col>
               ))}
