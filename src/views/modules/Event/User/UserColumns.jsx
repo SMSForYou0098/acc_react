@@ -222,7 +222,7 @@ export const getConditionalColumns = (type, zones, setZoneModal, handleApproval)
   return conditionalCols;
 };
 
-export const getActionColumn = (type, handlers,userRole) => ({
+export const getActionColumn = (type, handlers) => ({
   dataField: "action",
   text: "Action",
   formatter: (cell, row) => {
@@ -231,7 +231,9 @@ export const getActionColumn = (type, handlers,userRole) => ({
       handlePreview,
       AssignCredit,
       HandleDelete,
-      HandleBulkUser
+      HandleBulkUser,
+      userRole,
+      UserPermissions
     } = handlers;
 
     const actions = [
@@ -241,7 +243,7 @@ export const getActionColumn = (type, handlers,userRole) => ({
         onClick: () => handleShowIdCardModal(row.id),
         variant: "secondary",
         isDisabled: row?.status !== 1 || parseInt(row.approval_status) !== 1,
-        visible: type === "user" || userRole === 'Sub Organizer',
+        visible: (type === "user" || userRole === 'Sub Organizer') && UserPermissions?.includes('Generate ID Card'),
       },
       {
         tooltip: "Preview User",
@@ -255,21 +257,21 @@ export const getActionColumn = (type, handlers,userRole) => ({
         icon: <Users2 size={16} />,
         onClick: () => HandleBulkUser(row.id),
         variant: "warning",
-        visible: ["company", "organizer", "sub-organizer"].includes(type),
+        visible: ["company", "organizer"].includes(type),
       },
       {
         tooltip: "Manage User",
         icon: <Settings size={16} />,
         onClick: () => AssignCredit(row.id),
         variant: "primary",
-        visible:  userRole === 'Admin' || userRole === 'Organizer' || userRole === 'Company',
+        visible:  UserPermissions?.includes('Manage User'),
       },
       {
         tooltip: "Delete User",
         icon: <Trash2 size={16} />,
         onClick: () => HandleDelete(row.id),
         variant: "danger",
-        visible:  userRole === 'Admin' || userRole === 'Organizer' 
+        visible:  UserPermissions?.includes('Delete User')
       },
     ];
 

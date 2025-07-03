@@ -13,7 +13,7 @@ import BulkUser from "./BulkUser";
 import CompanySelectionCard from "./CompanySelectionCard";
 
 const Users = memo(({ type }) => {
-  const { api, formatDateTime, successAlert, authToken, ErrorAlert, UserData, userRole } = useMyContext();
+  const { api, formatDateTime, successAlert, authToken, ErrorAlert, UserData, userRole,UserPermissions } = useMyContext();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [zones, setZones] = useState([]);
@@ -282,10 +282,10 @@ const Users = memo(({ type }) => {
       AssignCredit,
       HandleDelete,
       HandleBulkUser,
-      userRole
+      userRole,
+      UserPermissions
     }),
   ];
-
   return (
     <Fragment>
       <UserDetailModal
