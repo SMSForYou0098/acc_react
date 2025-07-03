@@ -18,6 +18,7 @@ import UserPage from "../views/modules/Event/User/UserPage";
 
 
 import { useMyContext } from "../Context/MyContextProvider";
+import ScannedReports from "../views/modules/Event/Scanner/ScannedReports";
 
 const RoleBasedRedirect = ({ children, allowedPaths = [] }) => {
   const { userRole } = useMyContext();
@@ -108,6 +109,14 @@ export const DefaultRouter = [
                 )
               },
               {
+                path: "scanners",
+                element: (
+                  <RoleBasedRedirect>
+                    <Users type="scanner" />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
                 path: "sub-organizers",
                 element: (
                   <RoleBasedRedirect>
@@ -141,6 +150,14 @@ export const DefaultRouter = [
                 element: (
                   <RoleBasedRedirect>
                     <Camera />
+                  </RoleBasedRedirect>
+                )
+              },
+              {
+                path: "report",
+                element: (
+                  <RoleBasedRedirect>
+                    <ScannedReports />
                   </RoleBasedRedirect>
                 )
               }

@@ -43,11 +43,17 @@ export const menuConfig = [
           permission: "View Sub Organizer",
           minititle: "UL",
         },
+        {
+          title: "Scanner List",
+          path: "/dashboard/users/scanners",
+          permission: "View Scanner",
+          minititle: "SL",
+        },
       ],
     },
     // Scanner Accordion Menu
     {
-      title: "Scan Ticket",
+      title: "Scan",
       permission: ["Scan By Camera", "Scan By Scanner"],
       isAccordion: true,
       icon: <ScanIcon />,
@@ -62,6 +68,11 @@ export const menuConfig = [
           title: "Scan by Camera",
           path: "/dashboard/scan/camera",
           permission: "Scan By Camera"
+        },
+        {
+          title: "Scan Report",
+          path: "/dashboard/scan/report",
+          permission: "View Scan Report"
         },
       ],
     },
@@ -117,4 +128,5 @@ export const menuConfig = [
         },
       ],
     },
+
   ];

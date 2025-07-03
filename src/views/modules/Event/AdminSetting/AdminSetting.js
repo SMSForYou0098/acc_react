@@ -1,150 +1,108 @@
-import React, { useEffect, useState } from 'react'
-import { Card, Col, Row, Form, Button } from 'react-bootstrap'
-import { useMyContext } from '../../../../Context/MyContextProvider'
-import axios from 'axios'
-import SiteSettings from './SettingComps/SiteSettings'
-import WelcomeModal from './SettingComps/WelcomeModal'
+import React, { useEffect, useState } from 'react';
+import { Card, Col, Row, Form, Button } from 'react-bootstrap';
+import { useMyContext } from '../../../../Context/MyContextProvider';
+import axios from 'axios';
+import SiteSettings from './SettingComps/SiteSettings';
+import WelcomeModal from './SettingComps/WelcomeModal';
+
+const initialSettings = {
+  appName: '',
+  logo: '',
+  authLogo: '',
+  favicon: '',
+  mobileLogo: '',
+  missedCallNumber: '',
+  waNumber: '',
+  notifyReq: false,
+  complimentaryValidation: false,
+  isModalEnabled: false,
+  compressImage: false
+};
 
 const AdminSetting = () => {
-    const { api, successAlert, authToken } = useMyContext();
-    const [appName, setAppName] = useState('');
-    const [metaTitle, setMetaTitle] = useState('');
-    const [metaTag, setMetaTag] = useState('');
-    const [metaDescription, setMetaDescription] = useState('');
-    const [logo, setLogo] = useState('');
-    const [authLogo, setAuthLogo] = useState('');
-    const [favicon, setFavicon] = useState('');
-    const [copyright, setCopyright] = useState('');
-    const [copyrightLink, setCopyrightLink] = useState('');
-    const [missedCallNumber, setMissedCallNumber] = useState('');
-    const [waNumber, setWaNumber] = useState('');
-    const [notifyReq, setNotifyReq] = useState('');
-    const [complimentaryValidation, setComplimentaryValidation] = useState(false);
-    const [mobileLogo, setMobileLogo] = useState('');
+  const { api, successAlert, authToken } = useMyContext();
+  const [settings, setSettings] = useState(initialSettings);
+  const [loading, setLoading] = useState(false);
 
+  const fetchSettings = async () => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${api}settings`, {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    if (res.data.status) {
+      const configData = res.data.data;
+      setSettings({
+        appName: configData?.app_name || '',
+        waNumber: configData?.whatsApp_number || '',
+        missedCallNumber: configData?.missed_call_number || '',
+        logo: configData?.logo || '',
+        authLogo: configData?.auth_logo || '',
+        mobileLogo: configData?.mobile_logo || '',
+        favicon: configData?.favicon || '',
+        complimentaryValidation: configData?.complimentary_attendee_validation === 1,
+        notifyReq: configData?.user_notification_permission === 1,
+        isModalEnabled: configData?.welcome_modal_status === 1,
+        compressImage: configData?.compress_image === 1
+      });
+    }
+  } catch (err) {
+    console.error("Error fetching settings:", err);
+    // Optionally add error handling UI feedback here
+  } finally {
+    setLoading(false);
+  }
+};
 
-    const GetMailConfig = async () => {
-        try {
-            const res = await axios.get(`${api}settings`, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
-            if (res.data.status) {
-                const configData = res.data.data;
-                setAppName(configData?.app_name || '');
-                setMetaTitle(configData?.meta_title || '');
-                setMetaTag(configData?.meta_tag || '');
-                setMetaDescription(configData?.meta_description || '');
-                setMissedCallNumber(configData?.missed_call_no || '');
-                setLogo(configData?.logo || '');
-                setAuthLogo(configData?.auth_logo || '');
-                setMobileLogo(configData?.mo_logo)
-                setFavicon(configData?.favicon || '');
-                setCopyright(configData?.copyright || '');
-                setCopyrightLink(configData?.copyright_link || '');
-                setComplimentaryValidation(configData?.complimentary_attendee_validation === 1);
-                setNotifyReq(configData?.notify_req || '');
-            }
-        } catch (err) {
-            // console.log(err);
-        }
-    };
+  useEffect(() => { fetchSettings(); }, []);
 
-    useEffect(() => {
-        GetMailConfig()
-    }, []);
-
-    const changeFavicon = (newFaviconUrl) => {
-        const favicon = document.querySelector('link[rel="icon"]');
-        if (favicon) {
-            favicon.href = newFaviconUrl;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      Object.entries(settings).forEach(([key, value]) => {
+        if (['logo', 'mobileLogo', 'authLogo', 'favicon'].includes(key)) {
+          formData.append(key, value);
         } else {
-            // Create a new link element for the favicon
-            const newFavicon = document.createElement('link');
-            newFavicon.rel = 'icon';
-            newFavicon.href = newFaviconUrl;
-            document.head.appendChild(newFavicon);
+          formData.append(key, typeof value === 'boolean' ? (value ? 1 : 0) : value);
         }
-    }
+      });
 
-    const handleAppConfig = async (e) => {
-        try {
-            e.preventDefault()
-            const formData = new FormData();
-            formData.append('app_name', appName);
-            formData.append('whatsapp_number', waNumber);
-            formData.append('meta_title', metaTitle);
-            formData.append('meta_tag', metaTag);
-            formData.append('meta_description', metaDescription);
-            formData.append('missed_call_no', missedCallNumber);
-            formData.append('copyright', copyright);
-            formData.append('copyright_link', copyrightLink);
-            formData.append('logo', logo);
-            formData.append('mo_logo', mobileLogo);
-            formData.append('auth_logo', authLogo);
-            formData.append('favicon', favicon);
-            formData.append('complimentary_attendee_validation', complimentaryValidation ? 1 : 0);
-            formData.append('notify_req', notifyReq ? 1 : 0);
-            const res = await axios.post(`${api}setting`, formData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            if (res.data.status) {
-                successAlert('Success', 'App Configuration Stored Successfully');
-            }
-        } catch (err) {
-            // console.log(err);
+      const res = await axios.post(`${api}settings-store`, formData, {
+        headers: {
+          'Authorization': 'Bearer ' + authToken,
+          'Content-Type': 'multipart/form-data'
         }
-    };
-
-
-
-        return (
-            <Row>
-                <Col md={12}>
-                    <Card>
-                        <Card.Header>
-                            <h4 className="card-title">Admin Settings</h4>
-                        </Card.Header>
-                        <Card.Body>
-                            <Form>
-                                <Row>
-                                    <SiteSettings
-                                        logo={logo}
-                                        authLogo={authLogo}
-                                        setMobileLogo={setMobileLogo}
-                                        setWaNumber={setWaNumber}
-                                        waNumber={waNumber}
-                                        favicon={favicon}
-                                        appName={appName}
-                                        setLogo={setLogo}
-                                        setAuthLogo={setAuthLogo}
-                                        setFavicon={setFavicon}
-                                        setAppName={setAppName}
-                                        complimentaryValidation={complimentaryValidation}
-                                        setComplimentaryValidation={setComplimentaryValidation}
-                                        missedCallNumber={missedCallNumber}
-                                        setMissedCallNumber={setMissedCallNumber}
-                                        setNotifyReq={setNotifyReq}
-                                        notifyReq={notifyReq}
-                                    />
-                                    {/* ----------------------------------- */}
-                                    <div className='d-flex justify-content-end'>
-                                        <Button type="button" onClick={(e) => handleAppConfig(e)}>Submit</Button>
-                                    </div>
-                                    <hr className="hr-horizontal" />
-                                    <WelcomeModal />
-                                </Row>
-                            </Form>
-                        </Card.Body>
-                    </Card>
-                </Col>
-
-            </Row>
-        )
+      });
+      if (res.data.status) successAlert('Success', 'Settings saved successfully');
+    } catch (err) {
+      console.error("Error saving settings:", err);
     }
+  };
 
-    export default AdminSetting
+  return (
+    <Row>
+      <Col md={12}>
+        <Card>
+          <Card.Header><h4 className="card-title">Admin Settings</h4></Card.Header>
+          <Card.Body>
+            <Form>
+              <SiteSettings
+                loading={loading}
+                settings={settings}
+                onSettingChange={(key, value) => setSettings(prev => ({ ...prev, [key]: value }))}
+              />
+              <div className='d-flex justify-content-end'>
+                <Button onClick={handleSubmit}>Submit</Button>
+              </div>
+              <hr className="hr-horizontal" />
+              <WelcomeModal />
+            </Form>
+          </Card.Body>
+        </Card>
+      </Col>
+    </Row>
+  );
+};
+
+export default AdminSetting;

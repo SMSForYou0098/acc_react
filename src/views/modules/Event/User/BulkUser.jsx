@@ -392,7 +392,7 @@ const BulkUser = ({ show, setShow, id, type }) => {
                   >
                     <div className="d-flex align-items-center mb-1">
                       <motion.span
-                        className="fw-semibold me-2"
+                        className="fw-semibold me-2 fs-5"
                         transition={{ duration: 0.2 }}
                       >
                         {user?.name || "Unknown User"}
@@ -427,8 +427,8 @@ const BulkUser = ({ show, setShow, id, type }) => {
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <Mail className="text-muted me-2" size={14} />
-                      <span className="text-muted">
+                      <Mail className="text-dark me-2" size={16} />
+                      <span className="text-dark fs-6">
                         {user?.email || "No email provided"}
                       </span>
                     </motion.div>
@@ -438,8 +438,8 @@ const BulkUser = ({ show, setShow, id, type }) => {
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.3 }}
                     >
-                      <Phone className="text-muted me-2" size={14} />
-                      <span className="text-muted">
+                      <Phone className="text-dark me-2" size={16} />
+                      <span className="text-dark fs-6">
                         {user?.number || "No phone number"}
                       </span>
                     </motion.div>

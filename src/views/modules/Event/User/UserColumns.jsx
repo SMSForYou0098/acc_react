@@ -43,7 +43,7 @@ const formatAuth = (cell) => {
     text: isPassword ? "Password" : "OTP",
     variant: isPassword ? "outline-primary" : "outline-secondary",
   };
-
+ 
   return (
     <CustomTooltip text={config.text}>
       <Button variant={config.variant} className="btn-sm btn-icon border-0 bg-transparent p-0 m-0" disabled>
@@ -207,13 +207,6 @@ export const baseColumns = [
     formatter: formatRoleBadge,
     ...defaultColumnProps,
   },
-  {
-    dataField: "company_name",
-    text: "Company Name",
-    formatter: (cell, row) =>
-      cell || row.organiser_company_name || row.user_company_name || "—",
-    ...defaultColumnProps,
-  },
 ];
 
 export const getConditionalColumns = (
@@ -225,21 +218,22 @@ export const getConditionalColumns = (
   const conditionalCols = [];
 
   if (type === "company") {
-    conditionalCols.push(
-      {
-        dataField: "zoneData",
-        text: "Zones",
-        formatter: (cell, row) => formatZones(cell, row, zones, setZoneModal),
-        ...defaultColumnProps,
-      },
-      {
-        dataField: "organiser_name",
-        text: "Organizer",
-        formatter: (cell, row) =>
-          cell || row.organiser_company_name || row.user_org_name || "—",
-        ...defaultColumnProps,
-      }
-    );
+    conditionalCols.push({
+      dataField: "zoneData",
+      text: "Zones",
+      formatter: (cell, row) => formatZones(cell, row, zones, setZoneModal),
+      ...defaultColumnProps,
+    });
+  }
+
+  if (type === "company" || type === "scanner") {
+    conditionalCols.push({
+      dataField: "organiser_name",
+      text: "Organizer",
+      formatter: (cell, row) =>
+        cell || row.organiser_company_name || row.user_org_name || "—",
+      ...defaultColumnProps,
+    });
   }
   if (["organizer", "company"].includes(type)) {
     // Company name is now in baseColumns, so this conditional block can be removed or used for other columns specific to organizer/company
@@ -261,6 +255,15 @@ export const getConditionalColumns = (
         ...defaultColumnProps,
       }
     );
+  }
+  if (type !== "scanner") {
+    conditionalCols.push({
+      dataField: "company_name",
+      text: "Company Name",
+      formatter: (cell, row) =>
+        cell || row.organiser_company_name || row.user_company_name || "—",
+      ...defaultColumnProps,
+    });
   }
 
   return conditionalCols;
