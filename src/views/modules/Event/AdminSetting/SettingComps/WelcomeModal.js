@@ -61,13 +61,13 @@ const WelcomeModal = () => {
                         const data = res.data.data
                         setModalData(prev => ({
                             ...prev,
-                            url: data.url || '',
-                            smUrl: data.sm_url || ''
+                            url: data.url_exc || '',
+                            smUrl: data.url_sm || ''
                         }))
                         setIsModalEnabled(data.status === 1)
                         setPreviewUrl({
-                            big: data.image ? data.image : '',
-                            small: data.sm_image ? data.sm_image : ''
+                            big: data.image_exc ? data.image_exc : '',
+                            small: data.image_sm ? data.image_sm : ''
                         })
                     }
                 }
@@ -321,14 +321,14 @@ const WelcomeModal = () => {
     const handleEditModal = (modal) => {
         setEditingModalId(modal.id)
         setModalData({
-            image: '',
-            smImage: '',
-            url: modal.url || '',
-            smUrl: modal.sm_url || ''
+            image: modal.image_exc || modal.image || '',
+            smImage: modal.image_sm || modal.sm_image || '',
+            url: modal.url_exc || modal.url || '',
+            smUrl: modal.url_sm || modal.sm_url || ''
         })
         setPreviewUrl({
-            big: modal.image || '',
-            small: modal.sm_image || ''
+            big: modal.image_exc || modal.image || '',
+            small: modal.image_sm || modal.sm_image || ''
         })
         setShowModal(true)
     }
@@ -346,22 +346,20 @@ const WelcomeModal = () => {
             text: "You won't be able to revert this!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete it!'
         })
 
         if (result.isConfirmed) {
             try {
                 // Update local state directly for now
-                setModalsData(prevModals =>
-                    prevModals.filter(modal => modal.id !== modalId)
-                )
+                // setModalsData(prevModals =>
+                //     prevModals.filter(modal => modal.id !== modalId)
+                // )
 
                 successAlert('Success', 'Modal deleted successfully')
 
                 // Uncomment for actual API call
-                /*
+                
                 const res = await axios.delete(`${api}wc-mdl-delete/${modalId}`, {
                     headers: {
                         'Authorization': 'Bearer ' + authToken
@@ -376,7 +374,7 @@ const WelcomeModal = () => {
                 } else {
                     Swal.fire('Error!', 'Failed to delete modal.', 'error')
                 }
-                */
+
             } catch (err) {
                 console.log(err)
                 Swal.fire('Error!', 'Something went wrong while deleting the modal.', 'error')
@@ -384,9 +382,6 @@ const WelcomeModal = () => {
         }
     }
 
-    useEffect(() => {
-        console.log('WelcomeModal mounted', modalsData)
-    }, [modalsData]);
     return (
         <>
             <h4 className="mb-3">Welcome Modal Settings</h4>
@@ -400,7 +395,7 @@ const WelcomeModal = () => {
                                 <div className="position-relative">
                                     <Card.Img
                                         variant="top"
-                                        src={modal.image || '/placeholder-image.jpg'}
+                                        src={modal.image_exc || modal.image || '/placeholder-image.jpg'}
                                         style={{ height: '150px', objectFit: 'cover' }}
                                         alt="Modal preview"
                                     />
@@ -435,18 +430,18 @@ const WelcomeModal = () => {
                                         </small>
                                     </div>
                                     <div className="d-flex gap-4 justify-content-start">
-                                        {modal.url && (
+                                        {(modal.url_exc || modal.url) && (
                                             <div className="mb-2">
-                                                <small className="text-truncate d-block" title={modal.url}>
+                                                <small className="text-truncate d-block" title={modal.url_exc || modal.url}>
                                                     <Monitor size={12} /> <LinkIcon color={PRIMARY} size={12} /> {modal.url}
                                                 </small>
                                             </div>
                                         )}
                                         {/* //small url */}
-                                        {modal.sm_url && (
+                                        {(modal.url_sm || modal.sm_url) && (
                                             <div className="mb-2">
-                                                <small className="text-truncate d-block" title={modal.smUrl}>
-                                                    <Smartphone size={16} /> <LinkIcon color={PRIMARY} size={12} /> {modal.sm_url}
+                                                <small className="text-truncate d-block" title={modal.url_sm || modal.sm_url}>
+                                                    <Smartphone size={16} /> <LinkIcon color={PRIMARY} size={12} /> {modal.url_sm}
                                                 </small>
                                             </div>
                                         )}
@@ -662,8 +657,8 @@ const WelcomeModal = () => {
             <CustomImagePreview
                 showPreviewModal={showPreviewModal}
                 setShowPreviewModal={setShowPreviewModal}
-                link={isMobile ? previewModalData?.sm_url : previewModalData?.url}
-                src={isMobile ? previewModalData?.sm_image : previewModalData?.image}
+                link={isMobile ? (previewModalData?.sm_url || previewModalData?.url_sm) :  (previewModalData?.url || previewModalData?.url_exc)}
+                src={isMobile ? (previewModalData?.sm_image || previewModalData?.image_sm) : (previewModalData?.image || previewModalData?.image_exc)}
             />
         </>
     )
