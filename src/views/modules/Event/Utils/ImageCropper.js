@@ -1,139 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import ReactCrop from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import Cropper from 'react-easy-crop';
 
 const ImageCropper = (props) => {
-  const { 
-    show, 
-    onHide, 
-    imageSrc, 
-    onCropComplete, 
+  const {
+    show,
+    onHide,
+    imageSrc,
+    onCropComplete,
     targetDimensions = { width: 600, height: 300 },
     widthRange = { min: 150, max: 1200 },
     heightRange = { min: 150, max: 800 },
     allowFreeform = false,
     showCircularPreview = false
   } = props;
-  
+
   const aspectRatio = allowFreeform ? undefined : targetDimensions.width / targetDimensions.height;
 
-  const [crop, setCrop] = useState({
-    unit: 'px',
-    width: targetDimensions.width,
-    height: targetDimensions.height,
-    x: 0,
-    y: 0,
-    aspect: aspectRatio,
-  });
-  const [completedCrop, setCompletedCrop] = useState(null);
-  const imgRef = useRef(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [cropShape, setCropShape] = useState('rect'); // 'rect' or 'round'
   const previewCanvasRef = useRef(null);
   const circularCanvasRef = useRef(null);
 
-  const onImageLoad = (e) => {
-    const { width, height } = e.currentTarget;
-
-    // Calculate initial crop size based on target dimensions and image size
-    const imageAspectRatio = width / height;
-    const targetAspectRatio = targetDimensions.width / targetDimensions.height;
-    
-    let cropWidth, cropHeight;
-    
-    if (!allowFreeform) {
-      // For fixed aspect ratio, calculate the largest possible crop that fits
-      if (imageAspectRatio > targetAspectRatio) {
-        // Image is wider than target ratio
-        cropHeight = Math.min(height, targetDimensions.height);
-        cropWidth = cropHeight * targetAspectRatio;
-      } else {
-        // Image is taller than target ratio or same ratio
-        cropWidth = Math.min(width, targetDimensions.width);
-        cropHeight = cropWidth / targetAspectRatio;
-      }
-    } else {
-      // For freeform, use target dimensions but scale down if image is smaller
-      cropWidth = Math.min(width, targetDimensions.width);
-      cropHeight = Math.min(height, targetDimensions.height);
-    }
-
-    const initialCrop = {
-      unit: 'px',
-      width: cropWidth,
-      height: cropHeight,
-      x: (width - cropWidth) / 2,
-      y: (height - cropHeight) / 2,
-      aspect: aspectRatio,
-    };
-
-    setCrop(initialCrop);
-    
-    // Trigger crop completion for initial crop to enable preview and button
-    setTimeout(() => {
-      handleCropComplete(initialCrop);
-    }, 100);
-  };
-
-  const handleCropChange = (newCrop) => {
-    // Apply width and height constraints
-    if (newCrop.width < widthRange.min) {
-      newCrop.width = widthRange.min;
-    }
-    if (newCrop.width > widthRange.max) {
-      newCrop.width = widthRange.max;
-    }
-    if (newCrop.height < heightRange.min) {
-      newCrop.height = heightRange.min;
-    }
-    if (newCrop.height > heightRange.max) {
-      newCrop.height = heightRange.max;
-    }
-    
-    setCrop(newCrop);
-  };
-
-  const handleCropComplete = (crop) => {
-    setCompletedCrop(crop);
-    generatePreview(crop);
-  };
-
-  const generatePreview = (crop) => {
-    if (!crop || !imgRef.current || !previewCanvasRef.current) return;
-
-    const image = imgRef.current;
-    const canvas = previewCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    // Set canvas to target dimensions
-    canvas.width = targetDimensions.width;
-    canvas.height = targetDimensions.height;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, targetDimensions.width, targetDimensions.height);
-
-    // Draw the cropped portion scaled to target dimensions
-    ctx.drawImage(
-      image,
-      crop.x * scaleX,
-      crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
-      0,
-      0,
-      targetDimensions.width,
-      targetDimensions.height
-    );
-
-    // Generate circular preview if requested
-    if (showCircularPreview && circularCanvasRef.current) {
-      generateCircularPreview(canvas);
-    }
-  };
-
-  const generateCircularPreview = (sourceCanvas) => {
+  const generateCircularPreview = useCallback((sourceCanvas) => {
     if (!circularCanvasRef.current) return;
 
     const circularCanvas = circularCanvasRef.current;
@@ -144,6 +35,11 @@ const ImageCropper = (props) => {
     circularCanvas.height = size;
 
     ctx.clearRect(0, 0, size, size);
+
+    // Save the context state
+    ctx.save();
+
+    // Create circular clipping path
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
     ctx.closePath();
@@ -151,25 +47,111 @@ const ImageCropper = (props) => {
 
     // Draw the cropped image
     ctx.drawImage(sourceCanvas, 0, 0, size, size);
-  };
 
-  const handleSave = () => {
-    if (!completedCrop || !imgRef.current) return;
+    // Restore the context state
+    ctx.restore();
+  }, [targetDimensions]);
+
+  const generatePreview = useCallback((cropData) => {
+    if (!cropData || !imageSrc || !previewCanvasRef.current) return;
 
     const canvas = previewCanvasRef.current;
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const croppedFile = new File([blob], 'cropped-image.jpg', {
+    const ctx = canvas.getContext('2d');
+    const image = new Image();
+
+    image.onload = () => {
+      // Set canvas to target dimensions
+      canvas.width = targetDimensions.width;
+      canvas.height = targetDimensions.height;
+
+      // Clear canvas with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetDimensions.width, targetDimensions.height);
+
+      // Draw the cropped portion scaled to target dimensions
+      ctx.drawImage(
+        image,
+        cropData.x,
+        cropData.y,
+        cropData.width,
+        cropData.height,
+        0,
+        0,
+        targetDimensions.width,
+        targetDimensions.height
+      );
+
+      // Generate circular preview if requested
+      if (showCircularPreview && circularCanvasRef.current) {
+        generateCircularPreview(canvas);
+      }
+    };
+
+    image.crossOrigin = 'anonymous';
+    image.src = imageSrc;
+  }, [imageSrc, targetDimensions, showCircularPreview, generateCircularPreview]);
+
+
+  const onCropCompleteHandler = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+    generatePreview(croppedAreaPixels);
+  }, [generatePreview]);
+
+  const getCroppedImg = useCallback(async (imageSrc, pixelCrop) => {
+    const image = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    return new Promise((resolve) => {
+      image.onload = () => {
+        // Set canvas to target dimensions
+        canvas.width = targetDimensions.width;
+        canvas.height = targetDimensions.height;
+
+        // Clear canvas with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetDimensions.width, targetDimensions.height);
+
+        // Draw the cropped portion to fill the entire canvas
+        ctx.drawImage(
+          image,
+          pixelCrop.x,
+          pixelCrop.y,
+          pixelCrop.width,
+          pixelCrop.height,
+          0,
+          0,
+          targetDimensions.width,
+          targetDimensions.height
+        );
+
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, 'image/jpeg', 0.9);
+      };
+      image.src = imageSrc;
+    });
+  }, [targetDimensions]);
+
+  const handleSave = async () => {
+    if (!croppedAreaPixels) return;
+
+    try {
+      const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      if (croppedImageBlob) {
+        const croppedFile = new File([croppedImageBlob], 'cropped-image.jpg', {
           type: 'image/jpeg',
         });
         onCropComplete(croppedFile);
         onHide();
       }
-    }, 'image/jpeg', 0.9);
+    } catch (error) {
+      console.error('Error cropping image:', error);
+    }
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
+    <Modal show={show} onHide={onHide} size="xl">
       <Modal.Header closeButton>
         <Modal.Title>Crop Image</Modal.Title>
       </Modal.Header>
@@ -187,74 +169,80 @@ const ImageCropper = (props) => {
           </div>
 
           {imageSrc && (
-            <ReactCrop
-              crop={crop}
-              onChange={handleCropChange}
-              onComplete={handleCropComplete}
-              aspect={aspectRatio}
-              minWidth={widthRange.min}
-              maxWidth={widthRange.max}
-              minHeight={heightRange.min}
-              maxHeight={heightRange.max}
-              keepSelection
-            >
-              <img
-                ref={imgRef}
-                src={imageSrc}
-                onLoad={onImageLoad}
-                alt="Crop preview"
-                style={{ maxWidth: '100%', maxHeight: '400px' }}
+            <div style={{ position: 'relative', width: '100%', height: '400px' }}>
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={aspectRatio}
+                onCropChange={setCrop}
+                onCropComplete={onCropCompleteHandler}
+                onZoomChange={setZoom}
+                cropShape={cropShape}
+                showGrid={true}
               />
-            </ReactCrop>
+            </div>
           )}
 
-          {completedCrop && (
+          {croppedAreaPixels && (
             <div className="mt-3">
               <h6>Preview:</h6>
               <div className="d-flex justify-content-center gap-4 align-items-center">
                 {/* Square Preview */}
                 <div className="text-center">
-                  <p className="mb-2 fw-bold">Square</p>
-                  <canvas
-                    ref={previewCanvasRef}
-                    style={{
-                      border: '1px solid #ccc',
-                      borderRadius: '8px',
-                      maxWidth: '200px',
-                      maxHeight: '150px',
-                    }}
-                  />
-                  <div className="mt-2">
-                    <small className="text-muted">
-                      Final size: {targetDimensions.width}px × {targetDimensions.height}px
-                    </small>
+                  <div
+                    onClick={() => setCropShape('rect')}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                  >
+                    <p className="mb-2 fw-bold text-primary">Rectangle</p>
+                    <canvas
+                      className={`${cropShape === 'rect' ? 'shadow-xl' : ''}`}
+                      ref={previewCanvasRef}
+                      style={{
+                        border: '1px solid #ccc',
+                        borderRadius: '8px',
+                        maxWidth: '200px',
+                        maxHeight: '150px',
+                      }}
+                    />
+                    <div className="mt-2">
+                      <small className="text-muted">
+                        Final size: {targetDimensions.width}px × {targetDimensions.height}px
+                      </small>
+                    </div>
                   </div>
                 </div>
 
                 {/* Circular Preview - Only show if enabled */}
                 {showCircularPreview && (
                   <div className="text-center">
-                    <p className="mb-2 fw-bold">Circular</p>
                     <div
-                      style={{
-                        width: '150px',
-                        height: '150px',
-                        borderRadius: '50%',
-                        border: '1px solid #ccc',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#f8f9fa',
-                      }}
+                      onClick={() => setCropShape('round')}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     >
-                      <canvas
-                        ref={circularCanvasRef}
+                      <p className="mb-2 fw-bold text-primary">Circular</p>
+                      <div
+                        className={`${cropShape === 'round' ? 'shadow-xl' : ''}`}
                         style={{
                           width: '150px',
                           height: '150px',
+                          borderRadius: '50%',
+                          border: '1px solid #ccc',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#f8f9fa',
                         }}
-                      />
+                      >
+                        <canvas
+                          ref={circularCanvasRef}
+                          style={{
+                            width: '150px',
+                            height: '150px',
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -270,7 +258,7 @@ const ImageCropper = (props) => {
         <Button
           variant="primary"
           onClick={handleSave}
-          disabled={!completedCrop}
+          disabled={!croppedAreaPixels}
         >
           Save Cropped Image
         </Button>

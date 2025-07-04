@@ -198,38 +198,6 @@ const WelcomeModal = () => {
         setValidated(true)
         setIsLoading(true)
 
-        // Simulate API delay
-        setTimeout(() => {
-            // Create modal object with unique ID
-            const newModal = {
-                image: previewUrl.big,
-                sm_image: previewUrl.small,
-                url: modalData.url,
-                sm_url: modalData.smUrl,
-                status: isModalEnabled ? 1 : 0
-            }
-
-            // Update modalsData state
-            if (editingModalId) {
-                setModalsData(prevModals =>
-                    prevModals.map(modal =>
-                        modal.id === editingModalId
-                            ? { ...modal, ...newModal }
-                            : modal
-                    )
-                )
-                successAlert('Success', 'Modal updated successfully')
-            } else {
-                setModalsData(prev => [...prev, newModal])
-                successAlert('Success', 'Modal created successfully')
-            }
-
-            resetModalData()
-            setShowModal(false)
-            setIsLoading(false)
-        }, 1000) // 1 second delay to simulate API call
-
-        // Comment out the actual API call for now
         try {
             const formData = new FormData()
             if (modalData.image) formData.append('image', modalData.image)
@@ -252,7 +220,7 @@ const WelcomeModal = () => {
             if (res.data.status) {
                 successAlert('Success', editingModalId ? 'Modal updated successfully' : 'Modal created successfully')
 
-                // Update modalsData state
+                // Update modalsData state with API response
                 if (editingModalId) {
                     setModalsData(prevModals =>
                         prevModals.map(modal =>
@@ -262,7 +230,18 @@ const WelcomeModal = () => {
                         )
                     )
                 } else {
-                    setModalsData(prev => [...prev, res.data.data])
+                    // Add new modal with proper structure
+                    const newModal = {
+                        id: res.data.data.id,
+                        image: res.data.data.image_exc || res.data.data.image,
+                        sm_image: res.data.data.image_sm || res.data.data.sm_image,
+                        url: res.data.data.url_exc || res.data.data.url,
+                        sm_url: res.data.data.url_sm || res.data.data.sm_url,
+                        status: parseInt(res.data.data.status),
+                        created_at: res.data.data.created_at,
+                        updated_at: res.data.data.updated_at
+                    }
+                    setModalsData(prev => [...prev, newModal])
                 }
 
                 resetModalData()
@@ -270,11 +249,10 @@ const WelcomeModal = () => {
             }
         } catch (err) {
             console.log(err)
+            setErrors(prev => ({ ...prev, general: 'Failed to save modal. Please try again.' }))
         } finally {
             setIsLoading(false)
         }
-
-
     }
 
     const resetModalData = () => {
