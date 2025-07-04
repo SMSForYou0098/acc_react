@@ -34,6 +34,7 @@ const NewUser = memo(() => {
     photo: "",
     designation: "",
     eventName: "",
+    approval_status: "", // Default to approved
   });
 
   const [addressData, setAddressData] = useState({
@@ -243,6 +244,7 @@ const NewUser = memo(() => {
           photo: user.photo || "",
           eventName: user.event_name || "",
           designation: user.designation || "",
+          approval_status: user.approval_status || "", // Default to Approved
         }));
 
          // Set role
@@ -473,6 +475,7 @@ const NewUser = memo(() => {
         formData.append("photo", userData?.photo || "");
         formData.append("photoId", userData?.photoId || "");
         formData.append("designation", userData?.designation || "");
+        formData.append("approval_status", userData?.approval_status || "");
       }
       if(roleName === "Sub Organizer" && userRole==='Organizer'){
         formData.append("reporting_user", UserData.id )
@@ -609,7 +612,9 @@ const NewUser = memo(() => {
                             className="file-upload"
                             type="file"
                             accept="image/*"
-                            onChange={(e) => handleFileChange("photo", e.target.files[0])}
+                            onChange={(e) =>
+                              handleFileChange("photo", e.target.files[0])
+                            }
                           />
                         </div>
                       </div>
@@ -768,7 +773,9 @@ const NewUser = memo(() => {
 
                               {userRole === "Admin" &&
                                 (roleName === "User" ||
-                                  roleName === "Company" || roleName === "Sub Organizer" || roleName === 'Scanner') && (
+                                  roleName === "Company" ||
+                                  roleName === "Sub Organizer" ||
+                                  roleName === "Scanner") && (
                                   <Form.Group className="col-md-3 form-group">
                                     <Form.Label>Organizer:</Form.Label>
                                     <Select
@@ -874,23 +881,49 @@ const NewUser = memo(() => {
                           )}
 
                           {roleName === "User" && (
-                            <Form.Group className="col-md-3 form-group">
-                              <Form.Label htmlFor="designation">
-                                Designation:
-                              </Form.Label>
-                              <Form.Control
-                                type="test"
-                                id="designation"
-                                placeholder="Designation"
-                                value={userData.designation}
-                                required
-                                onChange={(e) =>
-                                  handleChange("designation", e.target.value)
-                                }
-                              />
-                            </Form.Group>
+                            <>
+                              <Form.Group className="col-md-3 form-group">
+                                <Form.Label htmlFor="designation">
+                                  Designation:
+                                </Form.Label>
+                                <Form.Control
+                                  type="test"
+                                  id="designation"
+                                  placeholder="Designation"
+                                  value={userData.designation}
+                                  required
+                                  onChange={(e) =>
+                                    handleChange("designation", e.target.value)
+                                  }
+                                />
+                              </Form.Group>
+                              {id &&
+                                (userRole === "Admin" ||
+                                  userRole === "Organizer") && (
+                                  <Form.Group className="col-md-3 form-group">
+                                    <Form.Label htmlFor="approval_status">
+                                      Approval Status:
+                                    </Form.Label>
+                                    <Form.Select
+                                      id="approval_status"
+                                      value={userData.approval_status}
+                                      required
+                                      onChange={(e) =>
+                                        handleChange(
+                                          "approval_status",
+                                          e.target.value
+                                        )
+                                      }
+                                    >
+                                      <option value="">Select Status</option>
+                                      <option value="0">Pending</option>
+                                      <option value="1">Approved</option>
+                                      <option value="2">Rejected</option>
+                                    </Form.Select>
+                                  </Form.Group>
+                                )}
+                            </>
                           )}
-
                         </Row>
 
                         {/* Documents Section */}
@@ -1192,7 +1225,7 @@ const NewUser = memo(() => {
           </Row>
         </Form>
       )}
-      
+
       {/* Image Cropper Modal */}
       <ImageCropper
         show={showCropper}
